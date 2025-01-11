@@ -1,0 +1,38 @@
+{
+    "name": "atomic-di",
+    "version": "0.7.1-beta.2",
+    "description": "A toolset for containerless dependency injection.",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ncor/atomic-di.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ncor/atomic-di/issues"
+    },
+    "homepage": "https://github.com/ncor/atomic-di#readme",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "npx tsup",
+        "test": "pnpx vitest coverage --coverage",
+        "benchmark": "pnpx vitest benchmark"
+    },
+    "author": "ensi",
+    "license": "MIT",
+    "devDependencies": {
+        "@vitest/coverage-v8": "^2.1.8",
+        "p-map": "^7.0.3",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2",
+        "vitest": "^2.1.8"
+    }
+}
