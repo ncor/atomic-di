@@ -1,5 +1,5 @@
 import { Provider } from "./provider";
-import { createImmutableMap, ImmutableMap } from "./readonly-map";
+import { createImmutableMap, ImmutableMap } from "./immutable-map";
 
 /**
  * A map of providers to their compatible versions.

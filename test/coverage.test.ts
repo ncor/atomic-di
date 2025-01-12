@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { once } from "../src/helpers";
-import { createImmutableMap } from "../src/readonly-map";
+import { createImmutableMap } from "../src/immutable-map";
 import { createScope } from "../src/scope";
 import { createMockMap } from "../src/mock-map";
 import {
