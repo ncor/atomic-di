@@ -1,6 +1,6 @@
 {
     "name": "atomic-di",
-    "version": "0.7.1-beta.2",
+    "version": "0.8.0-beta.1",
     "description": "A toolset for containerless dependency injection.",
     "repository": {
         "type": "git",
