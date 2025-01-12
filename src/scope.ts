@@ -2,16 +2,26 @@ import { Provider } from "./provider";
 
 /**
  * A map of providers to their instances.
- * Passed to the provider call to resolve instances
- * of scoped providers within it.
+ *
+ * Passed to a provider call in a resolution context object
+ * to resolve instances of scoped providers within it.
+ * ```ts
+ * const scope = createScope()
+ * provider({ scope })
+ * ```
  */
-export type Scope = WeakMap<Provider<any>, any>;
+export type Scope = Map<Provider<any>, any>;
 
 /**
- * Creates a new scope, map of providers to their instances.
- * Scope is passed to the provider call to resolve instances
- * of scoped providers within it.
+ * Creates a scope instance.
  *
- * @returns A new scope.
+ * Scope is passed to a provider call in a resolution context object
+ * to resolve instances of scoped providers within it.
+ * ```ts
+ * const scope = createScope()
+ * provider({ scope })
+ * ```
+ *
+ * @returns The scope instance.
  */
-export const createScope = (): Scope => new WeakMap();
+export const createScope = (): Scope => new Map();

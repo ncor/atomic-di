@@ -1,300 +1,469 @@
 import { describe, it, expect } from "vitest";
+
+import { once } from "../src/helpers";
+import { createImmutableMap } from "../src/readonly-map";
+import { createScope } from "../src/scope";
+import { createMockMap } from "../src/mock-map";
 import {
+    provide,
     transient,
     singleton,
     scoped,
-    createScope,
-    select,
-    createMockMap,
-} from "../src";
+    Resolver,
+    ResolutionContext,
+} from "../src/provider";
+import { resolveList, resolveMap } from "../src/collection-resolution";
+
+describe("once", () => {
+    it("should execute the function only once", () => {
+        let counter = 0;
+        const increment = once(() => counter++);
+
+        increment();
+        increment();
+        increment();
+
+        expect(counter).toBe(1);
+    });
+
+    it("should return the same value on subsequent calls", () => {
+        const getRandom = once(() => Math.random());
+        const first = getRandom();
+        const second = getRandom();
+        const third = getRandom();
+
+        expect(first).toBe(second);
+        expect(first).toBe(third);
+    });
+
+    it("should pass arguments to the original function", () => {
+        const add = once((a: number, b: number) => a + b);
+        const result = add(2, 3);
+
+        expect(result).toBe(5);
+        expect(add(4, 5)).toBe(5);
+    });
+
+    it("should be callable with different arguments without re-execution", () => {
+        let counter = 0;
+        const incrementWithArgs = once((a: number) => (counter += a));
+
+        incrementWithArgs(10);
+        incrementWithArgs(20);
+
+        expect(counter).toBe(10);
+    });
+});
+
+describe("ImmutableMap", () => {
+    it("should create an empty immutable map", () => {
+        const map = createImmutableMap<string, number>();
+        expect(map.entries).toEqual([]);
+    });
+
+    it("should get a value by key", () => {
+        const map = createImmutableMap([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        expect(map.get("a")).toBe(1);
+        expect(map.get("b")).toBe(2);
+        expect(map.get("c")).toBeUndefined();
+    });
+
+    it("should set a value under a key and return a new map", () => {
+        const map1 = createImmutableMap<string, number>();
+        const map2 = map1.set("a", 1);
+        const map3 = map2.set("b", 2);
+
+        expect(map1.entries).toEqual([]);
+        expect(map2.entries).toEqual([["a", 1]]);
+        expect(map3.entries).toEqual([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        expect(map1).not.toBe(map2);
+        expect(map2).not.toBe(map3);
+    });
+
+    it("should update an existing value", () => {
+        const map1 = createImmutableMap([["a", 1]]);
+        const map2 = map1.set("a", 2);
+
+        expect(map2.get("a")).toBe(2);
+        expect(map2.entries).toEqual([["a", 2]]);
+    });
+
+    it("should merge two immutable maps", () => {
+        const map1 = createImmutableMap([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        const map2 = createImmutableMap([
+            ["b", 3],
+            ["c", 4],
+        ]);
+        const mergedMap = map1.merge(map2);
+
+        expect(mergedMap.entries).toEqual([
+            ["a", 1],
+            ["b", 3],
+            ["c", 4],
+        ]);
+    });
+
+    it("should merge with an empty map", () => {
+        const map1 = createImmutableMap([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        const map2 = createImmutableMap<string, number>();
+        const mergedMap = map1.merge(map2);
+
+        expect(mergedMap.entries).toEqual([
+            ["a", 1],
+            ["b", 2],
+        ]);
+    });
+
+    it("should merge an empty map with map", () => {
+        const map1 = createImmutableMap();
+        const map2 = createImmutableMap([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        const mergedMap = map1.merge(map2);
+
+        expect(mergedMap.entries).toEqual([
+            ["a", 1],
+            ["b", 2],
+        ]);
+    });
+
+    it("should not modify the original map during merge", () => {
+        const map1 = createImmutableMap([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        const map2 = createImmutableMap([
+            ["b", 3],
+            ["c", 4],
+        ]);
+        map1.merge(map2);
+
+        expect(map1.entries).toEqual([
+            ["a", 1],
+            ["b", 2],
+        ]);
+        expect(map2.entries).toEqual([
+            ["b", 3],
+            ["c", 4],
+        ]);
+    });
+});
+
+describe("createScope", () => {
+    it("should create a new Map instance", () => {
+        const scope = createScope();
+        expect(scope).toBeInstanceOf(Map);
+    });
+
+    it("should return an empty scope", () => {
+        const scope = createScope();
+        expect(scope.size).toBe(0);
+    });
+});
+
+describe("createMockMap", () => {
+    it("should create an empty ImmutableMap", () => {
+        const mockMap = createMockMap();
+        expect(mockMap).toBeDefined();
+        expect(mockMap.entries).toEqual([]);
+        expect(mockMap.get("someKey" as any)).toBeUndefined();
+    });
+
+    it("should create an immutable map", () => {
+        const mockMap1 = createMockMap();
+        const mockMap2 = mockMap1.set("someKey" as any, "someValue" as any);
+        expect(mockMap1.entries).toEqual([]);
+        expect(mockMap2.entries).toEqual([["someKey", "someValue"]]);
+        expect(mockMap1).not.toBe(mockMap2);
+    });
+});
 
 describe("provide", () => {
-    describe("transient", () => {
-        it("should create a new instance on every call", () => {
-            const provider = transient(() => ({ value: Math.random() }));
-            const instance1 = provider();
-            const instance2 = provider();
+    it("should return a function (provider)", () => {
+        const resolver: Resolver<number> = () => 42;
+        const provider = provide("transient", resolver);
+        expect(typeof provider).toBe("function");
+    });
 
-            expect(instance1).not.toBe(instance2);
-            expect(instance1.value).not.toBe(instance2.value);
+    describe("transient", () => {
+        it("should always resolve a new instance", () => {
+            let counter = 0;
+            const resolver: Resolver<number> = () => counter++;
+            const provider = transient(resolver);
+
+            expect(provider()).toBe(0);
+            expect(provider()).toBe(1);
+            expect(provider()).toBe(2);
+        });
+
+        it("should pass context to a resolver", () => {
+            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const provider = transient(resolver);
+            const context = { scope: createScope(), mocks: createMockMap() };
+
+            expect(provider(context)).toBe(context);
         });
     });
 
     describe("singleton", () => {
-        it("should create only one instance", () => {
-            const provider = singleton(() => ({ value: Math.random() }));
-            const instance1 = provider();
-            const instance2 = provider();
-
-            expect(instance1).toBe(instance2);
+        it("should resolve the same instance on each call", () => {
+            let counter = 0;
+            const resolver: Resolver<number> = () => counter++;
+            const provider = singleton(resolver);
+            expect(provider()).toBe(0);
+            expect(provider()).toBe(0);
+            expect(provider()).toBe(0);
         });
 
-        it("should pass the use function into the resolver", () => {
-            const dependencyProvider = singleton(() => "dep");
-            const provider = singleton(
-                (use) => `test: ${use(dependencyProvider)}`,
-            );
-            expect(provider()).toBe("test: dep");
-        });
+        it("should pass context to a resolver", () => {
+            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const provider = singleton(resolver);
+            const context = { scope: createScope(), mocks: createMockMap() };
 
-        it("should only ever resolve a singleton once, even when nested", () => {
-            let dependencyValue = 0;
-            const dependencyProvider = singleton(() => {
-                dependencyValue++;
-                return dependencyValue;
-            });
-
-            const provider = singleton((use) => {
-                return use(dependencyProvider) + use(dependencyProvider);
-            });
-
-            expect(provider()).toBe(2);
-            expect(dependencyValue).toBe(1);
-            expect(provider()).toBe(2);
-            expect(dependencyValue).toBe(1);
+            expect(provider(context)).toBe(context);
         });
     });
 
     describe("scoped", () => {
-        it("should create a new instance per scope", () => {
-            const provider = scoped(() => ({ value: Math.random() }));
+        it("should resolve a new instance if no scope is provided", () => {
+            let counter = 0;
+            const resolver: Resolver<number> = () => counter++;
+            const provider = scoped(resolver);
+
+            expect(provider()).toBe(0);
+            expect(provider()).toBe(1);
+            expect(provider()).toBe(2);
+        });
+
+        it("should resolve the same instance within the same scope", () => {
+            let counter = 0;
+            const resolver: Resolver<number> = () => counter++;
+            const provider = scoped(resolver);
+            const scope = createScope();
+            const context = { scope };
+
+            expect(provider(context)).toBe(0);
+            expect(provider(context)).toBe(0);
+            expect(provider(context)).toBe(0);
+            expect(scope.size).toBe(1);
+        });
+
+        it("should resolve different instances in different scopes", () => {
+            let counter = 0;
+            const resolver: Resolver<number> = () => counter++;
+            const provider = scoped(resolver);
             const scope1 = createScope();
             const scope2 = createScope();
+            const context1 = { scope: scope1 };
+            const context2 = { scope: scope2 };
 
-            const instance1 = provider(scope1);
-            const instance2 = provider(scope1);
-            const instance3 = provider(scope2);
-            const instance4 = provider(createScope());
-
-            expect(instance1).toBe(instance2);
-            expect(instance1).not.toBe(instance3);
-            expect(instance1).not.toBe(instance4);
+            expect(provider(context1)).toBe(0);
+            expect(provider(context2)).toBe(1);
+            expect(scope1.size).toBe(1);
+            expect(scope2.size).toBe(1);
         });
 
-        it("should pass the use function into the resolver", () => {
-            const dependencyProvider = singleton(() => "dep");
-            const provider = scoped(
-                (use) => `test: ${use(dependencyProvider)}`,
-            );
+        it("should use the same scope across different providers", () => {
+            let counter = 0;
+            const resolver1: Resolver<number> = () => counter++;
+            const resolver2: Resolver<number> = () => counter++;
+            const provider1 = scoped(resolver1);
+            const provider2 = scoped(resolver2);
             const scope = createScope();
-            expect(provider(scope)).toBe("test: dep");
+            const context = { scope };
+
+            expect(provider1(context)).toBe(0);
+            expect(provider2(context)).toBe(1);
+            expect(provider1(context)).toBe(0);
+            expect(provider2(context)).toBe(1);
+            expect(scope.size).toBe(2);
         });
 
-        it("should resolve dependencies correctly within a scope", () => {
-            let dependencyValue = 0;
-            const dependencyProvider = scoped(() => {
-                dependencyValue++;
-                return dependencyValue;
-            });
-
-            const provider = scoped((use) => {
-                return use(dependencyProvider) + use(dependencyProvider);
-            });
+        it("should pass context to a resolver", () => {
+            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const provider = scoped(resolver);
             const scope = createScope();
-            expect(provider(scope)).toBe(2);
-            expect(dependencyValue).toBe(1);
-            expect(provider(scope)).toBe(2);
-            expect(dependencyValue).toBe(1);
+            const context = { scope, mocks: createMockMap() };
 
-            expect(provider(createScope())).toBe(4);
-            expect(dependencyValue).toBe(2);
+            expect(provider(context)).toBe(context);
         });
     });
-});
 
-describe("swap", () => {
-    it("should swap a dependency provider", () => {
-        const dependencyProvider = singleton(() => "original");
-        const replacementProvider = singleton(() => "replacement");
+    it("should use a mock if present", () => {
+        const resolver: Resolver<number> = () => 10;
+        const provider = transient(resolver);
+        const mock = () => 100;
+        const mocks = createMockMap().set(provider, mock);
+        const context = { mocks };
 
-        const provider = singleton((use) => use(dependencyProvider));
-        const swappedProvider = provider.mock(
-            dependencyProvider,
-            replacementProvider,
-        );
-
-        expect(provider()).toBe("original");
-        expect(swappedProvider()).toBe("replacement");
+        expect(provider(context)).toBe(100);
     });
 
-    it("should allow multiple swaps", () => {
-        const dep1 = singleton(() => "original1");
-        const dep2 = singleton(() => "original2");
-        const replacement1 = singleton(() => "replacement1");
-        const replacement2 = singleton(() => "replacement2");
+    it("should use a mock in a singleton provider if present", () => {
+        const resolver: Resolver<number> = () => 10;
+        const provider = singleton(resolver);
+        const mock = () => 100;
+        const mocks = createMockMap().set(provider, mock);
+        const context = { mocks };
 
-        const provider = singleton((use) => `${use(dep1)} - ${use(dep2)}`);
-
-        const swappedProvider = provider
-            .mock(dep1, replacement1)
-            .mock(dep2, replacement2);
-
-        expect(provider()).toBe("original1 - original2");
-        expect(swappedProvider()).toBe("replacement1 - replacement2");
+        expect(provider(context)).toBe(100);
+        expect(provider()).toBe(10);
     });
 
-    it("should not mutate existing providers", () => {
-        const dependencyProvider = singleton(() => "original");
-        const replacementProvider = singleton(() => "replacement");
-        const provider = singleton((use) => use(dependencyProvider));
-
-        const swappedProvider = provider.mock(
-            dependencyProvider,
-            replacementProvider,
-        );
-
-        expect(provider()).toBe("original");
-        expect(swappedProvider()).toBe("replacement");
-        expect(provider()).toBe("original"); // original unchanged
-    });
-
-    it("should use swapContext for nested provider resolution", () => {
-        const dep1 = singleton(() => "original1");
-        const dep2 = singleton(() => "original2");
-        const replacement1 = singleton(() => "replacement1");
-
-        const provider = transient((use) => `${use(dep1)} - ${use(dep2)}`);
-
-        const swapContext = createMockMap();
-        const newSwapContext = swapContext.add(dep1, replacement1);
-        expect(provider(undefined, newSwapContext)).toBe(
-            "replacement1 - original2",
-        );
-
-        expect(provider()).toBe("original1 - original2");
-    });
-});
-
-describe("select", () => {
-    it("should resolve all providers", () => {
-        const dep1 = singleton(() => "dep1");
-        const dep2 = singleton(() => "dep2");
-
-        const selection = select({ dep1, dep2 });
-        const resolved = selection();
-
-        expect(resolved).toEqual({ dep1: "dep1", dep2: "dep2" });
-    });
-
-    it("should allow dependencies to resolve other dependencies", () => {
-        const dep1 = singleton(() => "dep1");
-        const dep2 = singleton((use) => `dep2: ${use(dep1)}`);
-
-        const selection = select({ dep1, dep2 });
-        const resolved = selection();
-
-        expect(resolved).toEqual({ dep1: "dep1", dep2: "dep2: dep1" });
-    });
-
-    it("should resolve all providers within a scope", () => {
-        const dep1 = scoped(() => ({ value: Math.random() }));
-        const dep2 = scoped(() => ({ value: Math.random() }));
-
-        const selection = select({ dep1, dep2 });
+    it("should use a mock in a scoped provider if present", () => {
+        let counter = 0;
+        const resolver: Resolver<number> = () => counter++;
+        const provider = scoped(resolver);
+        const mock = () => 100;
+        const mocks = createMockMap().set(provider, mock);
         const scope = createScope();
+        const context = { mocks, scope };
 
-        const resolved1 = selection(scope);
-        const resolved2 = selection(scope);
-
-        expect(resolved1.dep1).toBe(resolved2.dep1);
-        expect(resolved1.dep2).toBe(resolved2.dep2);
+        expect(provider(context)).toBe(100);
+        expect(provider(context)).toBe(100);
+        expect(provider()).toBe(0);
     });
 
-    it("should allow swapping dependencies in the selection", () => {
-        const dep1 = singleton(() => "dep1");
-        const dep2 = singleton(() => "dep2");
-        const replacement1 = singleton(() => "replacement1");
+    it("should use a mock in nested providers", () => {
+        const mockValue = { value: "mocked" };
+        const mock = () => mockValue;
 
-        const selection = select({ dep1, dep2 });
-
-        const swappedSelection = selection.mock(dep1, replacement1);
-        expect(selection()).toEqual({ dep1: "dep1", dep2: "dep2" });
-        expect(swappedSelection()).toEqual({
-            dep1: "replacement1",
-            dep2: "dep2",
+        const dependencyProvider = transient(() => "real value" as const);
+        const provider = transient((context) => {
+            return dependencyProvider(context);
         });
-    });
 
-    it("should allow swapping dependencies in the selection when they resolve nested deps", () => {
-        const dep1 = singleton(() => "dep1");
-        const dep2 = singleton((use) => `dep2 ${use(dep1)}`);
+        const mocks = createMockMap().set(dependencyProvider, mock);
+        const context = { mocks };
 
-        const replacement1 = singleton(() => "replacement1");
-
-        const selection = select({ dep1, dep2 });
-
-        const swappedSelection = selection.mock(dep1, replacement1);
-        expect(selection()).toEqual({ dep1: "dep1", dep2: "dep2 dep1" });
-        expect(swappedSelection()).toEqual({
-            dep1: "replacement1",
-            dep2: "dep2 replacement1",
-        });
-    });
-
-    it("should use swapContext for nested provider resolution", () => {
-        const dep1 = singleton(() => "original1");
-        const dep2 = singleton(() => "original2");
-        const replacement1 = singleton(() => "replacement1");
-
-        const selection = select({ dep1, dep2 });
-
-        const swapContext = createMockMap();
-        const newSwapContext = swapContext.add(dep1, replacement1);
-        expect(selection(undefined, newSwapContext)).toEqual({
-            dep1: "replacement1",
-            dep2: "original2",
-        });
-        expect(selection()).toEqual({ dep1: "original1", dep2: "original2" });
+        expect(provider(context)).toBe(mockValue);
     });
 });
 
-describe("swap context", () => {
-    it("should register and resolve swaps", () => {
-        const dep1 = singleton(() => "original1");
-        const replacement1 = singleton(() => "replacement1");
-
-        const swapContext = createMockMap();
-        const newSwapContext = swapContext.add(dep1, replacement1);
-
-        expect(newSwapContext.map(dep1)()).toBe("replacement1");
-        expect(swapContext.map(dep1)()).toBe("original1");
+describe("resolveList", () => {
+    it("should resolve a list of providers with context", () => {
+        const provider1 = transient(() => 1);
+        const provider2 = singleton(() => 2);
+        const scope = createScope();
+        const context = { scope, mocks: createMockMap() };
+        const result = resolveList([provider1, provider2], context);
+        expect(result).toEqual([1, 2]);
     });
 
-    it("should apply another swap context", () => {
-        const dep1 = singleton(() => "original1");
-        const dep2 = singleton(() => "original2");
-        const replacement1 = singleton(() => "replacement1");
-        const replacement2 = singleton(() => "replacement2");
-
-        const swapContext1 = createMockMap();
-        const newSwapContext1 = swapContext1.add(dep1, replacement1);
-
-        const swapContext2 = createMockMap();
-        const newSwapContext2 = swapContext2.add(dep2, replacement2);
-
-        const combinedContext = newSwapContext1.apply(newSwapContext2);
-
-        expect(combinedContext.map(dep1)()).toBe("replacement1");
-        expect(combinedContext.map(dep2)()).toBe("replacement2");
+    it("should resolve a list of providers without context", () => {
+        const provider1 = transient(() => 1);
+        const provider2 = singleton(() => 2);
+        const result = resolveList([provider1, provider2]);
+        expect(result).toEqual([1, 2]);
     });
 
-    it("should apply another swap context when there are conflicts", () => {
-        const dep1 = singleton(() => "original1");
-        const replacement1 = singleton(() => "replacement1");
-        const replacement2 = singleton(() => "replacement2");
+    it("should resolve a list of providers with different types", () => {
+        const provider1 = transient(() => 1);
+        const provider2 = singleton(() => "2");
+        const result = resolveList([provider1, provider2]);
+        expect(result).toEqual([1, "2"]);
+    });
 
-        const swapContext1 = createMockMap();
-        const newSwapContext1 = swapContext1.add(dep1, replacement1);
+    it("should resolve a list with promises", async () => {
+        const provider1 = transient(async () => 1);
+        const provider2 = singleton(async () => 2);
+        const result = await resolveList([provider1, provider2]);
+        expect(result).toEqual([1, 2]);
+    });
+    it("should resolve a list with mixed values and promises", async () => {
+        const provider1 = transient(() => 1);
+        const provider2 = singleton(async () => 2);
+        const result = await resolveList([provider1, provider2]);
+        expect(result).toEqual([1, 2]);
+    });
 
-        const swapContext2 = createMockMap();
-        const newSwapContext2 = swapContext2.add(dep1, replacement2);
+    it("should use mock providers if provided", async () => {
+        const provider1 = transient(() => 1);
+        const mock1 = () => 100;
+        const provider2 = singleton(async () => 2);
+        const mock2 = async () => 200;
+        const mocks = createMockMap()
+            .set(provider1, mock1)
+            .set(provider2, mock2);
+        const context = { mocks };
+        const result = await resolveList([provider1, provider2], context);
+        expect(result).toEqual([100, 200]);
+    });
+});
 
-        const combinedContext = newSwapContext1.apply(newSwapContext2);
+describe("resolveMap", () => {
+    it("should resolve a map of providers with context", () => {
+        const providers = {
+            a: transient(() => 1),
+            b: singleton(() => 2),
+        };
+        const scope = createScope();
+        const context = { scope, mocks: createMockMap() };
+        const result = resolveMap(providers, context);
+        expect(result).toEqual({ a: 1, b: 2 });
+    });
 
-        expect(combinedContext.map(dep1)()).toBe("replacement2");
+    it("should resolve a map of providers without context", () => {
+        const providers = {
+            a: transient(() => 1),
+            b: singleton(() => 2),
+        };
+        const result = resolveMap(providers);
+        expect(result).toEqual({ a: 1, b: 2 });
+    });
 
-        const combinedContext2 = newSwapContext2.apply(newSwapContext1);
+    it("should resolve a map of providers with different types", () => {
+        const providers = {
+            a: transient(() => 1),
+            b: singleton(() => "2"),
+        };
+        const result = resolveMap(providers);
+        expect(result).toEqual({ a: 1, b: "2" });
+    });
 
-        expect(combinedContext2.map(dep1)()).toBe("replacement1");
+    it("should resolve a map with promises", async () => {
+        const providers = {
+            a: transient(async () => 1),
+            b: singleton(async () => 2),
+        };
+        const result = await resolveMap(providers);
+        expect(result).toEqual({ a: 1, b: 2 });
+    });
+
+    it("should resolve a map with mixed values and promises", async () => {
+        const providers = {
+            a: transient(() => 1),
+            b: singleton(async () => 2),
+        };
+        const result = await resolveMap(providers);
+        expect(result).toEqual({ a: 1, b: 2 });
+    });
+
+    it("should use mock providers if provided", async () => {
+        const providers = {
+            a: transient(() => 1),
+            b: singleton(async () => 2),
+        };
+        const mockA = () => 100;
+        const mockB = async () => 200;
+        const mocks = createMockMap()
+            .set(providers.a, mockA)
+            .set(providers.b, mockB);
+        const context = { mocks };
+        const result = await resolveMap(providers, context);
+        expect(result).toEqual({ a: 100, b: 200 });
     });
 });

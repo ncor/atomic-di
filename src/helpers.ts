@@ -10,10 +10,15 @@ export const once = <A extends any[], R>(
      */
     fn: (...args: A) => R,
 ) => {
-    let cachedResult: R | undefined;
+    let returned = false;
+    let result: R | undefined;
 
-    return Object.assign(
-        (...args: A) => cachedResult ?? (cachedResult = fn(...args)),
-        fn,
-    );
+    return Object.assign((...args: A): R => {
+        if (returned) return result!;
+
+        result = fn(...args);
+        returned = true;
+
+        return result;
+    }, fn);
 };
