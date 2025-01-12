@@ -5,7 +5,7 @@ import {
     scoped,
     createScope,
     select,
-    createSwapMap,
+    createMockMap,
 } from "../src";
 
 describe("provide", () => {
@@ -108,7 +108,7 @@ describe("swap", () => {
         const replacementProvider = singleton(() => "replacement");
 
         const provider = singleton((use) => use(dependencyProvider));
-        const swappedProvider = provider.swap(
+        const swappedProvider = provider.mock(
             dependencyProvider,
             replacementProvider,
         );
@@ -126,8 +126,8 @@ describe("swap", () => {
         const provider = singleton((use) => `${use(dep1)} - ${use(dep2)}`);
 
         const swappedProvider = provider
-            .swap(dep1, replacement1)
-            .swap(dep2, replacement2);
+            .mock(dep1, replacement1)
+            .mock(dep2, replacement2);
 
         expect(provider()).toBe("original1 - original2");
         expect(swappedProvider()).toBe("replacement1 - replacement2");
@@ -138,7 +138,7 @@ describe("swap", () => {
         const replacementProvider = singleton(() => "replacement");
         const provider = singleton((use) => use(dependencyProvider));
 
-        const swappedProvider = provider.swap(
+        const swappedProvider = provider.mock(
             dependencyProvider,
             replacementProvider,
         );
@@ -155,8 +155,8 @@ describe("swap", () => {
 
         const provider = transient((use) => `${use(dep1)} - ${use(dep2)}`);
 
-        const swapContext = createSwapMap();
-        const newSwapContext = swapContext.register(dep1, replacement1);
+        const swapContext = createMockMap();
+        const newSwapContext = swapContext.add(dep1, replacement1);
         expect(provider(undefined, newSwapContext)).toBe(
             "replacement1 - original2",
         );
@@ -207,7 +207,7 @@ describe("select", () => {
 
         const selection = select({ dep1, dep2 });
 
-        const swappedSelection = selection.swap(dep1, replacement1);
+        const swappedSelection = selection.mock(dep1, replacement1);
         expect(selection()).toEqual({ dep1: "dep1", dep2: "dep2" });
         expect(swappedSelection()).toEqual({
             dep1: "replacement1",
@@ -223,7 +223,7 @@ describe("select", () => {
 
         const selection = select({ dep1, dep2 });
 
-        const swappedSelection = selection.swap(dep1, replacement1);
+        const swappedSelection = selection.mock(dep1, replacement1);
         expect(selection()).toEqual({ dep1: "dep1", dep2: "dep2 dep1" });
         expect(swappedSelection()).toEqual({
             dep1: "replacement1",
@@ -238,8 +238,8 @@ describe("select", () => {
 
         const selection = select({ dep1, dep2 });
 
-        const swapContext = createSwapMap();
-        const newSwapContext = swapContext.register(dep1, replacement1);
+        const swapContext = createMockMap();
+        const newSwapContext = swapContext.add(dep1, replacement1);
         expect(selection(undefined, newSwapContext)).toEqual({
             dep1: "replacement1",
             dep2: "original2",
@@ -253,11 +253,11 @@ describe("swap context", () => {
         const dep1 = singleton(() => "original1");
         const replacement1 = singleton(() => "replacement1");
 
-        const swapContext = createSwapMap();
-        const newSwapContext = swapContext.register(dep1, replacement1);
+        const swapContext = createMockMap();
+        const newSwapContext = swapContext.add(dep1, replacement1);
 
-        expect(newSwapContext.resolve(dep1)()).toBe("replacement1");
-        expect(swapContext.resolve(dep1)()).toBe("original1");
+        expect(newSwapContext.map(dep1)()).toBe("replacement1");
+        expect(swapContext.map(dep1)()).toBe("original1");
     });
 
     it("should apply another swap context", () => {
@@ -266,16 +266,16 @@ describe("swap context", () => {
         const replacement1 = singleton(() => "replacement1");
         const replacement2 = singleton(() => "replacement2");
 
-        const swapContext1 = createSwapMap();
-        const newSwapContext1 = swapContext1.register(dep1, replacement1);
+        const swapContext1 = createMockMap();
+        const newSwapContext1 = swapContext1.add(dep1, replacement1);
 
-        const swapContext2 = createSwapMap();
-        const newSwapContext2 = swapContext2.register(dep2, replacement2);
+        const swapContext2 = createMockMap();
+        const newSwapContext2 = swapContext2.add(dep2, replacement2);
 
         const combinedContext = newSwapContext1.apply(newSwapContext2);
 
-        expect(combinedContext.resolve(dep1)()).toBe("replacement1");
-        expect(combinedContext.resolve(dep2)()).toBe("replacement2");
+        expect(combinedContext.map(dep1)()).toBe("replacement1");
+        expect(combinedContext.map(dep2)()).toBe("replacement2");
     });
 
     it("should apply another swap context when there are conflicts", () => {
@@ -283,18 +283,18 @@ describe("swap context", () => {
         const replacement1 = singleton(() => "replacement1");
         const replacement2 = singleton(() => "replacement2");
 
-        const swapContext1 = createSwapMap();
-        const newSwapContext1 = swapContext1.register(dep1, replacement1);
+        const swapContext1 = createMockMap();
+        const newSwapContext1 = swapContext1.add(dep1, replacement1);
 
-        const swapContext2 = createSwapMap();
-        const newSwapContext2 = swapContext2.register(dep1, replacement2);
+        const swapContext2 = createMockMap();
+        const newSwapContext2 = swapContext2.add(dep1, replacement2);
 
         const combinedContext = newSwapContext1.apply(newSwapContext2);
 
-        expect(combinedContext.resolve(dep1)()).toBe("replacement2");
+        expect(combinedContext.map(dep1)()).toBe("replacement2");
 
         const combinedContext2 = newSwapContext2.apply(newSwapContext1);
 
-        expect(combinedContext2.resolve(dep1)()).toBe("replacement1");
+        expect(combinedContext2.map(dep1)()).toBe("replacement1");
     });
 });
