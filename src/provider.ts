@@ -3,7 +3,7 @@ import { MockMap } from "./mock-map";
 import { Scope } from "./scope";
 
 /**
- * A wrapper around the resolver for contextual dependency resolution.
+ * A wrapper around the resolver(factory) for contextual dependency resolution.
  *
  * Resolves an instance by calling a resolver
  * with a resolution context that will be propagated
@@ -51,7 +51,7 @@ export type ResolutionContext = {
 
 /**
  * Creates a provider instance,
- * a wrapper around a resolver for contextual dependency resolution.
+ * a wrapper around a resolver(factory) for contextual dependency resolution.
  *
  * @param lifetime
  * A resolution lifetime.
@@ -98,7 +98,7 @@ export const provide = <T>(
 
 /**
  * Creates a transient provider instance,
- * a wrapper around a resolver for contextual dependency resolution
+ * a wrapper around a resolver(factory) for contextual dependency resolution
  * that will create a new instance on each request.
  *
  * @param resolver
@@ -111,7 +111,7 @@ export const transient = <T>(resolver: Resolver<T>) =>
 
 /**
  * Creates a transient provider instance,
- * a wrapper around a resolver for contextual dependency resolution
+ * a wrapper around a resolver(factory) for contextual dependency resolution
  * that will create an instance once and return it in subsequent requests.
  *
  * @param resolver
@@ -124,7 +124,7 @@ export const singleton = <T>(resolver: Resolver<T>) =>
 
 /**
  * Creates a transient provider instance,
- * a wrapper around a resolver for contextual dependency resolution
+ * a wrapper around a resolver(factory) for contextual dependency resolution
  * that will take its resolution from a provided scope
  * or create a new one and save it if there is none.
  * If no scope is passed, it will create a new instance on each request.
