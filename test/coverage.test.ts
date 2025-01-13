@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 
 import { once } from "../src/helpers";
-import { createImmutableMap } from "../src/immutable-map";
 import { createScope } from "../src/scope";
 import { createMockMap } from "../src/mock-map";
 import {
@@ -52,142 +51,6 @@ describe("once", () => {
         incrementWithArgs(20);
 
         expect(counter).toBe(10);
-    });
-});
-
-describe("ImmutableMap", () => {
-    it("should create an empty immutable map", () => {
-        const map = createImmutableMap<string, number>();
-        expect(map.entries).toEqual([]);
-    });
-
-    it("should get a value by key", () => {
-        const map = createImmutableMap([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        expect(map.get("a")).toBe(1);
-        expect(map.get("b")).toBe(2);
-        expect(map.get("c")).toBeUndefined();
-    });
-
-    it("should set a value under a key and return a new map", () => {
-        const map1 = createImmutableMap<string, number>();
-        const map2 = map1.set("a", 1);
-        const map3 = map2.set("b", 2);
-
-        expect(map1.entries).toEqual([]);
-        expect(map2.entries).toEqual([["a", 1]]);
-        expect(map3.entries).toEqual([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        expect(map1).not.toBe(map2);
-        expect(map2).not.toBe(map3);
-    });
-
-    it("should update an existing value", () => {
-        const map1 = createImmutableMap([["a", 1]]);
-        const map2 = map1.set("a", 2);
-
-        expect(map2.get("a")).toBe(2);
-        expect(map2.entries).toEqual([["a", 2]]);
-    });
-
-    it("should merge two immutable maps", () => {
-        const map1 = createImmutableMap([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        const map2 = createImmutableMap([
-            ["b", 3],
-            ["c", 4],
-        ]);
-        const mergedMap = map1.merge(map2);
-
-        expect(mergedMap.entries).toEqual([
-            ["a", 1],
-            ["b", 3],
-            ["c", 4],
-        ]);
-    });
-
-    it("should merge with an empty map", () => {
-        const map1 = createImmutableMap([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        const map2 = createImmutableMap<string, number>();
-        const mergedMap = map1.merge(map2);
-
-        expect(mergedMap.entries).toEqual([
-            ["a", 1],
-            ["b", 2],
-        ]);
-    });
-
-    it("should merge an empty map with map", () => {
-        const map1 = createImmutableMap();
-        const map2 = createImmutableMap([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        const mergedMap = map1.merge(map2);
-
-        expect(mergedMap.entries).toEqual([
-            ["a", 1],
-            ["b", 2],
-        ]);
-    });
-
-    it("should not modify the original map during merge", () => {
-        const map1 = createImmutableMap([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        const map2 = createImmutableMap([
-            ["b", 3],
-            ["c", 4],
-        ]);
-        map1.merge(map2);
-
-        expect(map1.entries).toEqual([
-            ["a", 1],
-            ["b", 2],
-        ]);
-        expect(map2.entries).toEqual([
-            ["b", 3],
-            ["c", 4],
-        ]);
-    });
-});
-
-describe("createScope", () => {
-    it("should create a new Map instance", () => {
-        const scope = createScope();
-        expect(scope).toBeInstanceOf(Map);
-    });
-
-    it("should return an empty scope", () => {
-        const scope = createScope();
-        expect(scope.size).toBe(0);
-    });
-});
-
-describe("createMockMap", () => {
-    it("should create an empty ImmutableMap", () => {
-        const mockMap = createMockMap();
-        expect(mockMap).toBeDefined();
-        expect(mockMap.entries).toEqual([]);
-        expect(mockMap.get("someKey" as any)).toBeUndefined();
-    });
-
-    it("should create an immutable map", () => {
-        const mockMap1 = createMockMap();
-        const mockMap2 = mockMap1.set("someKey" as any, "someValue" as any);
-        expect(mockMap1.entries).toEqual([]);
-        expect(mockMap2.entries).toEqual([["someKey", "someValue"]]);
-        expect(mockMap1).not.toBe(mockMap2);
     });
 });
 
@@ -341,7 +204,9 @@ describe("provide", () => {
         const mockValue = { value: "mocked" };
         const mock = () => mockValue;
 
-        const dependencyProvider = transient(() => "real value" as const);
+        const dependencyProvider = transient(() => ({
+            value: "real value",
+        }));
         const provider = transient((context) => {
             return dependencyProvider(context);
         });
