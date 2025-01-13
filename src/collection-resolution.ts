@@ -25,6 +25,12 @@ type AwaitAllValuesInCollection<T extends any[] | Record<any, any>> =
  * Calls every provider in a list with a provided resolution context
  * and returns a list of resolutions. Returns a promise of a list
  * of awaited resolutions if there's at least one promise in the resolutions.
+ * ```ts
+ * const resolutions = resolveList(
+ *     [getA, getB, getC],
+ *     { scope, mocks }
+ * )
+ * ```
  *
  * @param providers - The list of providers.
  * @param context - The resolution context.
@@ -51,6 +57,12 @@ export const resolveList = <const Providers extends ProviderList>(
  * and returns a map with identical keys but with resolutions in values instead.
  * Returns a promise of a map of awaited resolutions if there's at least one
  * promise in the resolutions.
+ * ```ts
+ * const resolutionMap = resolveMap(
+ *     { a: getA, b: getB, c: getC },
+ *     { scope, mocks }
+ * )
+ * ```
  *
  * @param providers - The map of providers.
  * @param context - The resolution context.
