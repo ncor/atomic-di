@@ -104,7 +104,7 @@ export const provide = <T>(
  *
  * @returns The transient provider instance.
  */
-export const transient = <T>(resolver: Resolver<T>) =>
+export const transient = <T>(resolver: Resolver<T>): Provider<T> =>
     provide("transient", resolver);
 
 /**
@@ -117,7 +117,7 @@ export const transient = <T>(resolver: Resolver<T>) =>
  *
  * @returns The singleton provider instance.
  */
-export const singleton = <T>(resolver: Resolver<T>) =>
+export const singleton = <T>(resolver: Resolver<T>): Provider<T> =>
     provide("singleton", resolver);
 
 /**
@@ -132,4 +132,5 @@ export const singleton = <T>(resolver: Resolver<T>) =>
  *
  * @returns The scoped provider instance.
  */
-export const scoped = <T>(resolver: Resolver<T>) => provide("scoped", resolver);
+export const scoped = <T>(resolver: Resolver<T>): Provider<T> =>
+    provide("scoped", resolver);
