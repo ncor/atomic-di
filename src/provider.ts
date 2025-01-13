@@ -75,25 +75,23 @@ export const provide = <T>(
     lifetime: Lifetime,
     resolver: Resolver<T>,
 ): Provider<T> => {
-    const getSelf = once(() => resolve);
-
     resolver = lifetime === "singleton" ? once(resolver) : resolver;
 
     const resolve: Provider<T> = (context) => {
-        const maybeOwnMock = context?.mocks?.get(getSelf());
+        const maybeOwnMock = context?.mocks?.get(resolve);
         if (maybeOwnMock) return maybeOwnMock(context);
 
         if (lifetime !== "scoped" || !context?.scope) return resolver(context);
 
-        const resolution = context.scope.has(getSelf())
-            ? context.scope.get(getSelf())
+        const resolution = context.scope.has(resolve)
+            ? context.scope.get(resolve)
             : resolver(context);
-        context.scope.set(getSelf(), resolution);
+        context.scope.set(resolve, resolution);
 
         return resolution;
     };
 
-    return getSelf();
+    return resolve;
 };
 
 /**
