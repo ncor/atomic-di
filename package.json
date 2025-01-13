@@ -1,6 +1,6 @@
 {
     "name": "atomic-di",
-    "version": "0.9.1-beta.3",
+    "version": "0.9.1-beta.4",
     "description": "A toolset for containerless dependency injection.",
     "repository": "https://github.com/ncor/atomic-di",
     "bugs": "https://github.com/ncor/atomic-di/issues",
