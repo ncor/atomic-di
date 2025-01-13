@@ -2,13 +2,8 @@
     "name": "atomic-di",
     "version": "0.9.1-beta.1",
     "description": "A toolset for containerless dependency injection.",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ncor/atomic-di.git"
-    },
-    "bugs": {
-        "url": "https://github.com/ncor/atomic-di/issues"
-    },
+    "repository": "https://github.com/ncor/atomic-di",
+    "bugs": "https://github.com/ncor/atomic-di/issues",
     "homepage": "https://github.com/ncor/atomic-di#readme",
     "exports": {
         ".": {
@@ -24,7 +19,7 @@
     "scripts": {
         "build": "npx tsup",
         "test": "pnpx vitest coverage --coverage",
-        "benchmark": "pnpx vitest benchmark"
+        "publish": "pnpm publish && npx jsr publish"
     },
     "author": "ensi",
     "license": "MIT",
