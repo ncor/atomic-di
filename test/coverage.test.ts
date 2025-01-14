@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 
-import { once } from "../src/helpers";
 import { createScope } from "../src/scope";
 import { createMockMap } from "../src/mock-map";
 import {
-    provide,
     transient,
     singleton,
     scoped,
@@ -13,54 +11,7 @@ import {
 } from "../src/provider";
 import { resolveList, resolveMap } from "../src/collection-resolution";
 
-describe("once", () => {
-    it("should execute the function only once", () => {
-        let counter = 0;
-        const increment = once(() => counter++);
-
-        increment();
-        increment();
-        increment();
-
-        expect(counter).toBe(1);
-    });
-
-    it("should return the same value on subsequent calls", () => {
-        const getRandom = once(() => Math.random());
-        const first = getRandom();
-        const second = getRandom();
-        const third = getRandom();
-
-        expect(first).toBe(second);
-        expect(first).toBe(third);
-    });
-
-    it("should pass arguments to the original function", () => {
-        const add = once((a: number, b: number) => a + b);
-        const result = add(2, 3);
-
-        expect(result).toBe(5);
-        expect(add(4, 5)).toBe(5);
-    });
-
-    it("should be callable with different arguments without re-execution", () => {
-        let counter = 0;
-        const incrementWithArgs = once((a: number) => (counter += a));
-
-        incrementWithArgs(10);
-        incrementWithArgs(20);
-
-        expect(counter).toBe(10);
-    });
-});
-
-describe("provide", () => {
-    it("should return a function (provider)", () => {
-        const resolver: Resolver<number> = () => 42;
-        const provider = provide("transient", resolver);
-        expect(typeof provider).toBe("function");
-    });
-
+describe("provider", () => {
     describe("transient", () => {
         it("should always resolve a new instance", () => {
             let counter = 0;

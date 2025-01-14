@@ -1,4 +1,3 @@
-import { once } from "./helpers";
 import { MockMap } from "./mock-map";
 import { Scope } from "./scope";
 
@@ -52,72 +51,47 @@ export type ResolutionContext = {
     mocks?: MockMap;
 };
 
-/**
- * Creates a provider instance,
- * a wrapper around a resolver(factory) for contextual dependency resolution.
- * ```ts
- * const getInstance = provide("transient", () =>
- *     createInstance(
- *         getOtherInstance(context)
- *     )
- * )
- * ```
- *
- * @param lifetime
- * A resolution lifetime.
- *
- * `"transient"` doesn't provide any modifications to a resolver behaviour,
- * so the resolver will create a new instance on each request.
- *
- * `"singleton"` forces the resolver to create an instance once
- * and return it in subsequent requests.
- *
- * `"scoped"` forces the resolver to take its resolution from a provided scope
- * or create a new one and save it if there is none.
- * If no scope is passed, it will create a new instance on each request.
- *
- * @param resolver
- * The function that creates an instance using a resolution context.
- * If the function calls other providers,
- * the context **must** be passed to their calls.
- *
- * @returns The provider instance.
- */
-export const provide = <T>(
+const once = <A extends any[], R>(fn: (...args: A) => R) => {
+    let returned = false;
+    let result: R | undefined;
+
+    return Object.assign((...args: A): R => {
+        if (returned) return result!;
+
+        result = fn(...args);
+        returned = true;
+
+        return result;
+    }, fn);
+};
+
+const createProvider = <T>(
     lifetime: Lifetime,
     resolver: Resolver<T>,
 ): Provider<T> => {
     resolver = lifetime === "singleton" ? once(resolver) : resolver;
 
-    const resolve: Provider<T> = (context) => {
-        const maybeOwnMock = context?.mocks?.get(resolve);
+    const provider: Provider<T> = (context) => {
+        const maybeOwnMock = context?.mocks?.get(provider);
         if (maybeOwnMock) return maybeOwnMock(context);
 
         if (lifetime !== "scoped" || !context?.scope) return resolver(context);
 
-        const resolution = context.scope.has(resolve)
-            ? context.scope.get(resolve)
+        const resolution = context.scope.has(provider)
+            ? context.scope.get(provider)
             : resolver(context);
-        context.scope.set(resolve, resolution);
+        context.scope.set(provider, resolution);
 
         return resolution;
     };
 
-    return resolve;
+    return provider;
 };
 
 /**
- * An alias for `provide("transient", ...)`.
  * Creates a transient provider instance,
- * a wrapper around a resolver(factory) for contextual dependency resolution
+ * a wrapper around a resolver for contextual dependency resolution
  * that will create a new instance on each request.
- * ```ts
- * const getInstance = transient((context) =>
- *     createInstance(...)
- * )
- *
- * getInstance() !== getInstance()
- * ```
  *
  * @param resolver
  * The function that creates an instance using a resolution context.
@@ -125,11 +99,10 @@ export const provide = <T>(
  * @returns The transient provider instance.
  */
 export const transient = <T>(resolver: Resolver<T>): Provider<T> =>
-    provide("transient", resolver);
+    createProvider("transient", resolver);
 
 /**
- * An alias for `provide("singleton", ...)`.
- * Creates a transient provider instance,
+ * Creates a singleton provider instance,
  * a wrapper around a resolver(factory) for contextual dependency resolution
  * that will create an instance once and return it in subsequent requests.
  * ```ts
@@ -146,11 +119,10 @@ export const transient = <T>(resolver: Resolver<T>): Provider<T> =>
  * @returns The singleton provider instance.
  */
 export const singleton = <T>(resolver: Resolver<T>): Provider<T> =>
-    provide("singleton", resolver);
+    createProvider("singleton", resolver);
 
 /**
- * An alias for `provide("scoped", ...)`.
- * Creates a transient provider instance,
+ * Creates a scoped provider instance,
  * a wrapper around a resolver(factory) for contextual dependency resolution
  * that will take its resolution from a provided scope
  * or create a new one and save it if there is none.
@@ -170,4 +142,4 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> =>
  * @returns The scoped provider instance.
  */
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> =>
-    provide("scoped", resolver);
+    createProvider("scoped", resolver);
