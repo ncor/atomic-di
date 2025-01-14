@@ -1,24 +1,24 @@
-import { Provider } from "./provider";
+import { Resolver } from "./provider";
 
 /**
  * A `Map` of providers to providers of the same type
  * which is then passed to a provider call in a resolution context object
  * in order to replace providers with their mocks.
  */
-export type MockMap = Omit<Map<Provider<any>, Provider<any>>, "set" | "get"> & {
+export type MockMap = Omit<Map<Resolver<any>, Resolver<any>>, "set" | "get"> & {
     /**
      * Sets a mock for a provider.
      *
      * @param provider - The original provider.
      * @param mock - The mock provider.
      */
-    set<T>(provider: Provider<T>, mock: Provider<T>): MockMap;
+    set<T>(provider: Resolver<T>, mock: Resolver<T>): MockMap;
     /**
      * Retrieves a mock of a provider. Returns undefined if there's none.
      *
      * @param provider - The provider.
      */
-    get<T>(provider: Provider<T>): Provider<T> | undefined;
+    get<T>(provider: Resolver<T>): Resolver<T> | undefined;
 };
 
 /**

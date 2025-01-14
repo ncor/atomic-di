@@ -2,20 +2,14 @@ import { describe, it, expect } from "vitest";
 
 import { createScope } from "../src/scope";
 import { createMockMap } from "../src/mock-map";
-import {
-    transient,
-    singleton,
-    scoped,
-    Resolver,
-    ResolutionContext,
-} from "../src/provider";
+import { transient, singleton, scoped } from "../src/provider";
 import { resolveList, resolveMap } from "../src/collection-resolution";
 
 describe("provider", () => {
     describe("transient", () => {
         it("should always resolve a new instance", () => {
             let counter = 0;
-            const resolver: Resolver<number> = () => counter++;
+            const resolver = () => counter++;
             const provider = transient(resolver);
 
             expect(provider()).toBe(0);
@@ -24,7 +18,7 @@ describe("provider", () => {
         });
 
         it("should pass context to a resolver", () => {
-            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const resolver = (context) => context!;
             const provider = transient(resolver);
             const context = { scope: createScope(), mocks: createMockMap() };
 
@@ -35,7 +29,7 @@ describe("provider", () => {
     describe("singleton", () => {
         it("should resolve the same instance on each call", () => {
             let counter = 0;
-            const resolver: Resolver<number> = () => counter++;
+            const resolver = () => counter++;
             const provider = singleton(resolver);
             expect(provider()).toBe(0);
             expect(provider()).toBe(0);
@@ -43,7 +37,7 @@ describe("provider", () => {
         });
 
         it("should pass context to a resolver", () => {
-            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const resolver = (context) => context!;
             const provider = singleton(resolver);
             const context = { scope: createScope(), mocks: createMockMap() };
 
@@ -54,7 +48,7 @@ describe("provider", () => {
     describe("scoped", () => {
         it("should resolve a new instance if no scope is provided", () => {
             let counter = 0;
-            const resolver: Resolver<number> = () => counter++;
+            const resolver = () => counter++;
             const provider = scoped(resolver);
 
             expect(provider()).toBe(0);
@@ -64,7 +58,7 @@ describe("provider", () => {
 
         it("should resolve the same instance within the same scope", () => {
             let counter = 0;
-            const resolver: Resolver<number> = () => counter++;
+            const resolver = () => counter++;
             const provider = scoped(resolver);
             const scope = createScope();
             const context = { scope };
@@ -77,7 +71,7 @@ describe("provider", () => {
 
         it("should resolve different instances in different scopes", () => {
             let counter = 0;
-            const resolver: Resolver<number> = () => counter++;
+            const resolver = () => counter++;
             const provider = scoped(resolver);
             const scope1 = createScope();
             const scope2 = createScope();
@@ -92,8 +86,8 @@ describe("provider", () => {
 
         it("should use the same scope across different providers", () => {
             let counter = 0;
-            const resolver1: Resolver<number> = () => counter++;
-            const resolver2: Resolver<number> = () => counter++;
+            const resolver1 = () => counter++;
+            const resolver2 = () => counter++;
             const provider1 = scoped(resolver1);
             const provider2 = scoped(resolver2);
             const scope = createScope();
@@ -107,7 +101,7 @@ describe("provider", () => {
         });
 
         it("should pass context to a resolver", () => {
-            const resolver: Resolver<ResolutionContext> = (context) => context!;
+            const resolver = (context) => context!;
             const provider = scoped(resolver);
             const scope = createScope();
             const context = { scope, mocks: createMockMap() };
@@ -117,7 +111,7 @@ describe("provider", () => {
     });
 
     it("should use a mock if present", () => {
-        const resolver: Resolver<number> = () => 10;
+        const resolver = () => 10;
         const provider = transient(resolver);
         const mock = () => 100;
         const mocks = createMockMap().set(provider, mock);
@@ -127,7 +121,7 @@ describe("provider", () => {
     });
 
     it("should use a mock in a singleton provider if present", () => {
-        const resolver: Resolver<number> = () => 10;
+        const resolver = () => 10;
         const provider = singleton(resolver);
         const mock = () => 100;
         const mocks = createMockMap().set(provider, mock);
@@ -139,7 +133,7 @@ describe("provider", () => {
 
     it("should use a mock in a scoped provider if present", () => {
         let counter = 0;
-        const resolver: Resolver<number> = () => counter++;
+        const resolver = () => counter++;
         const provider = scoped(resolver);
         const mock = () => 100;
         const mocks = createMockMap().set(provider, mock);

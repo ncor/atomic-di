@@ -25,12 +25,6 @@ type AwaitAllValuesInCollection<T extends any[] | Record<any, any>> =
  * Calls every provider in a list with a provided resolution context
  * and returns a list of resolutions. Returns a promise of a list
  * of awaited resolutions if there's at least one promise in the resolutions.
- * ```ts
- * const resolutions = resolveList(
- *     [getA, getB, getC],
- *     { scope, mocks }
- * )
- * ```
  *
  * @param providers - The list of providers.
  * @param context - The resolution context.
@@ -45,11 +39,11 @@ export const resolveList = <const Providers extends ProviderList>(
 > => {
     const resolutions = providers.map((provider) => provider(context));
 
-    return (
-        resolutions.some((resolution) => resolution instanceof Promise)
-            ? Promise.all(resolutions)
-            : resolutions
-    ) as any;
+    const hasPromises = resolutions.some(
+        (resolution) => resolution instanceof Promise,
+    );
+
+    return (hasPromises ? Promise.all(resolutions) : resolutions) as any;
 };
 
 /**
@@ -57,12 +51,6 @@ export const resolveList = <const Providers extends ProviderList>(
  * and returns a map with identical keys but with resolutions in values instead.
  * Returns a promise of a map of awaited resolutions if there's at least one
  * promise in the resolutions.
- * ```ts
- * const resolutionMap = resolveMap(
- *     { a: getA, b: getB, c: getC },
- *     { scope, mocks }
- * )
- * ```
  *
  * @param providers - The map of providers.
  * @param context - The resolution context.
@@ -75,24 +63,23 @@ export const resolveMap = <const Providers extends ProviderRecord>(
 ): AwaitAllValuesInCollection<
     InferProviderCollectionResolutions<Providers>
 > => {
-    let resolutionMapEntries = Object.entries(providers).map(
+    const resolutionMapEntries = Object.entries(providers).map(
         ([key, provider]) => [key, provider(context)],
     );
 
-    if (
-        resolutionMapEntries.some(
-            ([, resolution]) => resolution instanceof Promise,
-        )
-    ) {
+    const hasPromises = resolutionMapEntries.some(
+        ([, resolution]) => resolution instanceof Promise,
+    );
+
+    if (hasPromises) {
         return (async () => {
-            resolutionMapEntries = await Promise.all(
+            const awaitedEntries = await Promise.all(
                 resolutionMapEntries.map(async ([key, resolution]) => [
                     key,
                     await resolution,
                 ]),
             );
-
-            return Object.fromEntries(resolutionMapEntries);
+            return Object.fromEntries(awaitedEntries);
         })() as any;
     }
 
