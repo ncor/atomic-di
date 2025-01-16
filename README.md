@@ -36,7 +36,7 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
 
 Before reading, it's highly recommended that you familiarize yourself with the concepts of inversion of control (IoC) and dependency injection (DI), as well as DI techniques.
 
-If you need a container to build your application, or you are satisfied with pure dependency injection, you should definitely consider other solutions, or not use the framework at all.
+If you need a container to build your application, or you are satisfied with pure dependency injection, you should definitely consider other solutions, or not use a framework at all.
 
 This library is an attempt to provide full-featured dependency injection **without containers**.
 
@@ -44,21 +44,21 @@ This library is an attempt to provide full-featured dependency injection **witho
 
 ### Lifetimes
 
-We can implement lifetime using static initializations together with factory functions that create instances on demand. However, this can introduce inconsistency into the composition code.
+We can implement lifetime using static initializations together with factory functions that create instances on demand. However, this can introduce inconsistency into a composition code.
 
 This library solves this problem by allowing to resolve instances once using the same factory technique.
 
 ### Scopes
 
-Often in your application you may need to resolve instances separately for different "scopes" of the program, be it a request, a transaction or a worker thread. This behavior can be achieved by correctly distributing transient resolutions, but at scale the complexity of this approach will only increase.
+Often in your application you may need to resolve instances separately for different "scopes" of a program, be it a request, a transaction or a worker thread. This behavior can be achieved by correctly distributing transient resolutions, but at scale the complexity of this approach will only increase.
 
-This library solves this problem by introducing into factories (hereinafter referred to as providers) the ability to work with a map of providers to their instances, which serves as a scope.
+This library solves this problem by introducing into factories (hereinafter referred to as providers) an ability to work with a map of providers to their instances, which serves as a scope.
 
 ### Mocking
 
 Testability is an important part of every application. IoC handles this very well, but to perform a unit test we still need to resolve modules. To ensure testing without side effects, developers often use mocking - replacing implementations with others with the same behavior. We can rebuild modules manually for each unit test or group of unit tests, but at scale this approach can introduce a lot of extra manual work without any significant benefit.
 
-This library solves this problem by allowing you to use factories that have been defined for the main application build. It's enough to create a map of mock providers to providers with the same interface, and pass it to the provider call to replace the implementations in its dependencies.
+This library solves this problem by allowing you to use factories that have been defined for a main application build. It's enough to create a map of mock providers to providers with the same interface, and pass it to a provider call to replace implementations in its dependencies.
 
 # Installation
 
@@ -91,41 +91,41 @@ The library provides functions that create providers with behavior typical of si
 
 ### Transient
 
-Transient providers are created using the `transient` function:
+Transient providers are created using `transient` function:
 ```ts
 const getThing = transient(() => createThing())
 ```
 
-Transient providers are no different from regular factories except for additional logic required for scopes and mocks to work correctly. This logic is also present in the other two functions, you can read about it [here](#Resolution-context).
+Transient providers are no different from regular factories except for additional logic required for scopes and mocks to work correctly. This logic is also present in other two functions, you can read about it [here](#Resolution-context).
 
 ### Singleton
 
-Singleton providers are created using the `singleton` function:
+Singleton providers are created using `singleton` function:
 ```ts
 const getA = singleton(() => createA())
 const getB = transient((c) => createB(getA(c)))
 ```
 
-In this case, calling `getA` will always result in the same instance, and the passed factory will only be called once:
+In this case, calling `getA` will always result in a same instance, and a passed factory will only be called once:
 ```ts
 getA() === getA() == getB().A === getB().A
 ```
 
-You may have noticed that the `getB` provider factory uses a certain `c` argument. This is a context that can optionally be passed when calling the provider, you can read about it [here](#Resolution-context).
+You may have noticed that the `getB` provider factory uses a certain `c` argument. This is a context that can optionally be passed when calling a provider, you can read about it [here](#Resolution-context).
 
 ### Scoped
 
-Scoped providers are created using the `scoped` function:
+Scoped providers are created using `scoped` function:
 ```ts
 const getThing = scoped(() => createThing())
 ```
 
-When calling this provider without passing a scope to the resolution context, it will create a new unique instance:
+When calling this provider without passing a scope to a resolution context, it will create a new unique instance:
 ```ts
 getThing() !== getThing()
 ```
 
-To get resolutions within a scope, we need to pass it to the provider call in the resolution context object:
+To get resolutions within a scope, we need to pass it to a provider call in a resolution context object:
 ```ts
 const scope = createScope()
 
@@ -136,9 +136,9 @@ You can read more about scopes [here](#Scoping).
 
 ## Resolution context
 
-Each provider can accept a resolution context object. This is an object with optional `scope` and `mocks` fields that defines how the instance will be resolved.
+Each provider can accept a resolution context object. This is an object with optional `scope` and `mocks` fields that defines how an instance will be resolved.
 
-In all provider factories that have dependencies, this context **must** be passed into all calls to other providers to ensure it is propagated up the call chain.
+In all provider factories that have dependencies, this context **must** be passed into all calls to other providers to ensure it is propagated up a call chain.
 
 #### Incorrect
 ```ts
@@ -147,7 +147,7 @@ const getB = scoped(() => createB(getA()))
 const getC = scoped(() => createC(getB()))
 ```
 
-In this case, the context will not propagate beyond `getC` and other providers will not know about the current scope and mocks, and `getB` will return an instance that is not related to any scopes.
+In this case, a context will not propagate beyond `getC` and other providers will not know about a current scope and mocks, and `getB` will return an instance that is not related to any scopes.
 
 #### Correct
 ```ts
@@ -156,23 +156,23 @@ const getB = scoped((c) => createB(getA(c)))
 const getC = scoped((c) => createC(getB(c)))
 ```
 
-In this case, `getC` will propagate the context, and `getB` and `getA` will be aware of the current mocks and scopes, resolving instances correctly.
+In this case, `getC` will propagate a context, and `getB` and `getA` will be aware of a current mocks and scopes, resolving instances correctly.
 
-More details on how the provider behaves depending on the passed context can be found in the sections about [mocking](#Mocking) and [scoping](#Scoping).
+More details on how provider behaves depending on a passed context can be found in sections about [mocking](#Mocking) and [scoping](#Scoping).
 
 ## Mocking
 
-To replace implementations inside factories, we can use a mock map. To create one, we can use the `createMockMap` function:
+To replace implementations inside factories, we can use a mock map. To create one, we can use `createMockMap` function:
 ```ts
 const mockMap = createMockMap()
 ```
 
-To register a mock, you need to `set` an entry with the original provider in the key and its mock in the value:
+To register a mock, you need to `set` an entry with an original provider in a key and its mock in a value:
 ```ts
 mockMap.set(getDatabase, getMockDatabase)
 ```
 
-Once all mocks have been registered, this map can be passed to the provider call. If the provider finds a mock in the resolution context, it checks whether it is among the keys, and in that case returns the mock call instead of itself.
+Once all mocks have been registered, this map can be passed to a provider call. If a provider finds a mock in a resolution context, it checks whether it is among the keys, and in that case returns a mock call instead of itself.
 
 #### Direct replacement
 ```ts
@@ -205,14 +205,14 @@ getC({ mocks }) === "2sea"
 
 ## Scoping
 
-In this library, a scope is a map of providers to their resolutions. To create one, you can use the `createScope` function:
+In this library, a scope is a map of providers to their resolutions. To create one, you can use `createScope` function:
 ```ts
 const scope = createScope()
 ```
 
-It is passed to the scoped provider call or to the call of a provider that has the scoped provider among its transitive dependencies.
-- If the scoped provider finds a scope in the resolution context, it first tries to get its own resolution from it. If there is none, it creates a new resolution and places it in the scope below itself.
-- If a scope is not passed to the resolution context when calling the scoped provider, the provider will create a new instance, i.e. it will behave as a transient provider.
+It is passed to a scoped provider call or to a call of a provider that has the scoped provider among its transitive dependencies.
+- If a scoped provider finds a scope in a resolution context, it first tries to get its own resolution from it. If there is none, it creates a new resolution and places it in the scope below itself.
+- If a scope is not passed to a resolution context when calling a scoped provider, the provider will create a new instance, i.e. it will behave as a transient provider.
 
 #### Direct scoped provider call
 ```ts
@@ -253,11 +253,11 @@ thing1.scopedDependency === thing2.scopedDependency
 
 ## Bulk resolutions
 
-It often happens that you need to resolve instances of a large number of entities, in our case providers, with the same context. Fortunately, the library provides functions for this.
+It often happens that you need to resolve instances of a large number of entities, in our case providers, with a same context. Fortunately, the library provides functions for this.
 
 ### List resolution
 
-To resolve instances of a list of providers, you can use the `resolveList` function, which takes a list of providers and a common resolution context. If at least one provider in the passed list of providers returns a `Promise`, the function will return a `Promise` of the list of **awaited** resolutions.
+To resolve instances of a list of providers, you can use `resolveList` function, which takes a list of providers and a common resolution context. If at least one provider in the passed list of providers returns a `Promise`, the function will return a `Promise` of a list of **awaited** resolutions.
 
 #### Only sync providers
 ```ts
@@ -301,7 +301,7 @@ resolutions == [
 
 ### Map resolution
 
-To resolve instances of a provider map, or an object with string keys and providers in the values, you can use the `resolveMap` function, which takes a provider map and a common resolution context. If at least one provider in the values of the passed provider map returns a `Promise`, the function will return a `Promise` of a map of **awaited** resolutions.
+To resolve instances of a provider map, or an object with string keys and providers in a values, you can use `resolveMap` function, which takes a provider map and a common resolution context. If at least one provider in the values of the passed provider map returns a `Promise`, the function will return a `Promise` of a map of **awaited** resolutions.
 
 #### Only sync providers
 ```ts
