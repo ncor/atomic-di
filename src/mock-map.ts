@@ -26,6 +26,14 @@ export type MockMap = Omit<Map<Resolver<any>, Resolver<any>>, "set" | "get"> & {
  * which is then passed to a provider call in a resolution context object
  * in order to replace providers with their mocks.
  *
+ * @example
+ * ```ts
+ * const mocks = createMockMap()
+ *     .set(getConfig, getTestConfig)
+ *
+ * getThing({ mocks })
+ * ```
+ *
  * @returns The map instance.
  */
 export const createMockMap = (): MockMap => new Map();

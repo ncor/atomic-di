@@ -8,7 +8,7 @@ import { Scope } from "./scope";
 export type Resolver<T> = (context?: ResolutionContext) => T;
 
 /**
- * A function that resolves an instance or a `Promsie` of a particular type
+ * A function that resolves an instance or a `Promise` of a particular type
  * based on a resolution context passed to it.
  */
 export type Provider<T> = Resolver<T>;
@@ -25,10 +25,15 @@ export type ResolutionContext = {
 /**
  * Creates a transient provider that will resolve a new instance on each call.
  *
+ * @example
+ * ```ts
+ * const getThing = transient(() => createThing())
+ * getThing() !== getThing()
+ * ```
+ *
  * @param resolver
  * A function that returns a value of a particular type
  * with a resolution context being passed to it.
- * A resolution context passed to it must be passed to all calls to other providers.
  *
  * @returns The transient provider.
  */
@@ -47,10 +52,15 @@ export const transient = <T>(resolver: Resolver<T>): Provider<T> => {
  * Creates a singleton provider that will resolve an instance once
  * and return it on every call.
  *
+ * @example
+ * ```ts
+ * const getThing = singleton(() => createThing())
+ * getThing() === getThing()
+ * ```
+ *
  * @param resolver
  * A function that returns a value of a particular type
  * with a resolution context being passed to it.
- * A resolution context passed to it must be passed to all calls to other providers.
  *
  * @returns The singleton provider.
  */
@@ -78,10 +88,22 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
  * or create a new one and save it if there is none.
  * If no scope is passed, it will create a new instance on each call.
  *
+ * @example
+ * ```ts
+ * const getThing = scoped(() => createThing())
+ * getThing() !== getThing()
+ * ```
+ *
+ * @example
+ * ```ts
+ * const getThing = scoped(() => createThing())
+ * const scope = createScope()
+ * getThing({ scope }) === getThing({ scope })
+ * ```
+ *
  * @param resolver
  * A function that returns a value of a particular type
  * with a resolution context being passed to it.
- * A resolution context passed to it must be passed to all calls to other providers.
  *
  * @returns The scoped provider.
  */
