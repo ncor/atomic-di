@@ -1,6 +1,6 @@
 {
     "name": "@ensi/di",
-    "version": "0.9.1-beta.4",
+    "version": "1.0.0-rc.1",
     "license": "MIT",
     "exports": "./src/index.ts"
 }
