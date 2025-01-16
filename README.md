@@ -158,7 +158,7 @@ const getC = scoped((c) => createC(getB(c)))
 
 In this case, `getC` will propagate the context, and `getB` and `getA` will be aware of the current mocks and scopes, resolving instances correctly.
 
-More details on how the provider behaves depending on the passed context can be found in the sections on [mocking](#Mocking) and [scopes](#Scopes).
+More details on how the provider behaves depending on the passed context can be found in the sections about [mocking](#Mocking) and [scoping](#Scoping).
 
 ## Mocking
 
