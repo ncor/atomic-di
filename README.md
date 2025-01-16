@@ -13,7 +13,7 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
         - [Scoped](#Scoped)
     - [Resolution context](#Resolution-context)
     - [Mocking](#Mocking)
-    - [Scopes](#Scopes)
+    - [Scoping](#Scoping)
     - [Bulk resolutions](#Bulk-resolutions)
         - [List resolution](#List-resolution)
         - [Map resolution](#Map-resolution)
@@ -80,7 +80,7 @@ npx jsr add @ensi/di
     - [Scoped](#Scoped)
 - [Resolution context](#Resolution-context)
 - [Mocking](#Mocking)
-- [Scopes](#Scopes)
+- [Scoping](#Scoping)
 - [Bulk resolutions](#Bulk-resolutions)
     - [List resolution](#List-resolution)
     - [Map resolution](#Map-resolution)
@@ -132,7 +132,7 @@ const scope = createScope()
 getThing({ scope }) === getThing({ scope })
 ```
 
-You can read more about scopes [here](#Scopes).
+You can read more about scopes [here](#Scoping).
 
 ## Resolution context
 
@@ -203,7 +203,7 @@ const mocks = createMockMap().set(getC, getSea)
 getC({ mocks }) === "2sea"
 ```
 
-## Scopes
+## Scoping
 
 In this library, a scope is a map of providers to their resolutions. To create one, you can use the `createScope` function:
 ```ts
