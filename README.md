@@ -54,7 +54,7 @@ Often in your application you may need to resolve instances separately for diffe
 
 This library solves this problem by introducing into factories (hereinafter referred to as providers) an ability to work with a map of providers to their instances, which serves as a scope.
 
-### Mocking
+### Testing
 
 Testability is an important part of every application. IoC handles this very well, but to perform a unit test we still need to resolve modules. To ensure testing without side effects, developers often use mocking - replacing implementations with others with the same behavior. We can rebuild modules manually for each unit test or group of unit tests, but at scale this approach can introduce a lot of extra manual work without any significant benefit.
 
