@@ -87,7 +87,7 @@ npx jsr add @ensi/di
 
 ## Providers
 
-The library provides functions that create providers with behavior typical of singletons, transients, and scopeds.
+A provider is a factory of instances with additional functionality. The library provides functions that create providers with behavior typical of singletons, transients, and scopes.
 
 ### Transient
 
