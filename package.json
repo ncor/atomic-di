@@ -1,6 +1,6 @@
 {
     "name": "atomic-di",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "Lifetimes, scopes and mocking for pure dependency injection.",
     "repository": "https://github.com/ncor/atomic-di",
     "bugs": "https://github.com/ncor/atomic-di/issues",
