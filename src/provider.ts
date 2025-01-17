@@ -1,4 +1,4 @@
-import { Mocks } from "./mocking";
+import { Mocks } from "./mocks";
 import { Scope } from "./scope";
 
 /**
