@@ -105,11 +105,17 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
     const singletonFallback = singleton(resolver);
 
-    const instance = mockable((context) =>
-        context?.scope
-            ? context.scope.resolve(instance, context)
-            : singletonFallback(context),
-    );
+    const instance = mockable((context) => {
+        if (!context?.scope) return singletonFallback(context);
+
+        const resolution = context.scope.has(instance)
+            ? context.scope.get(instance)
+            : resolver(context);
+
+        context.scope.set(instance, resolution);
+
+        return resolution;
+    });
 
     return instance;
 };
