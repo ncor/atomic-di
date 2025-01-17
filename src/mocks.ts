@@ -1,4 +1,4 @@
-import { Provider, ResolutionContext } from "./provider";
+import { Provider } from "./provider";
 
 type OrAwaited<T> = T | Awaited<T>;
 type AwaitedPartial<T> = Partial<Awaited<T>>;
