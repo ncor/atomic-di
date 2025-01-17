@@ -120,9 +120,9 @@ Scoped providers are created using `scoped` function:
 const getThing = scoped(() => createThing())
 ```
 
-When calling this provider without passing a scope to a resolution context, it will create a new unique instance:
+When calling this provider without passing a scope to a resolution context, it will act as a singleton, resulting in a same instance:
 ```ts
-getThing() !== getThing()
+getThing() === getThing()
 ```
 
 To get resolutions within a scope, we need to pass it to a provider call in a resolution context object:
@@ -212,7 +212,7 @@ const scope = createScope()
 
 It is passed to a scoped provider call or to a call of a provider that has the scoped provider among its transitive dependencies.
 - If a scoped provider finds a scope in a resolution context, it first tries to get its own resolution from it. If there is none, it creates a new resolution and places it in the scope below itself.
-- If a scope is not passed to a resolution context when calling a scoped provider, the provider will create a new instance, i.e. it will behave as a transient provider.
+- If a scope is not passed to a resolution context when calling a scoped provider, the provider will always result in a same instance, and a passed factory will only be called once, i.e. it will behave as a singleton provider.
 
 #### Direct scoped provider call
 ```ts
@@ -222,13 +222,14 @@ const getThing = scoped(() => createThing())
 const thing1 = getThing()
 const thing2 = getThing()
 
-thing1 !== thing2
+thing1 === thing2
 ```
 ```ts
 const thing1 = getThing({ scope })
 const thing2 = getThing({ scope })
+const thingFallback = getThing()
 
-thing1 === thing2
+thing1 === thing2 !== thingFallback
 ```
 
 #### Scoped provider as direct/transitive dependency
@@ -242,13 +243,14 @@ const getThing = transitive((c) =>
 const thing1 = getThing()
 const thing2 = getThing()
 
-thing1.scopedDependency !== thing2.scopedDependency
+thing1.scopedDependency === thing2.scopedDependency
 ```
 ```ts
 const thing1 = getThing({ scope })
 const thing2 = getThing({ scope })
+const thingWithFallback = getThing()
 
-thing1.scopedDependency === thing2.scopedDependency
+thing1.scopedDependency === thing2.scopedDependency !== thingWithFallback
 ```
 
 ## Bulk resolutions
@@ -394,19 +396,19 @@ function scoped<T>(resolver: Resolver<T>): Provider<T>
 ```
 - `resolver`: A function that returns a value of a particular type with a resolution context being passed to it.
 
-Creates a scoped provider that will take its resolution from a passed scope or create a new one and save it if there is none. If no scope is passed, it will create a new instance on each call.
+Creates a scoped provider that will take its resolution from a passed scope or create a new one and save it if there is none. If no scope is passed, it will act as a singleton
 
 #### Example 1
 ```ts
 const getThing = scoped(() => createThing())
-getThing() !== getThing()
+getThing() === getThing()
 ```
 
 #### Example 2
 ```ts
 const getThing = scoped(() => createThing())
 const scope = createScope()
-getThing({ scope }) === getThing({ scope })
+getThing({ scope }) === getThing({ scope }) !== getThing()
 ```
 
 ### `createMockMap`

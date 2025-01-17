@@ -46,14 +46,13 @@ describe("provider", () => {
     });
 
     describe("scoped", () => {
-        it("should resolve a new instance if no scope is provided", () => {
+        it("should resolve as a singleton if no scope is provided", () => {
             let counter = 0;
             const resolver = () => counter++;
             const provider = scoped(resolver);
 
             expect(provider()).toBe(0);
-            expect(provider()).toBe(1);
-            expect(provider()).toBe(2);
+            expect(provider()).toBe(0);
         });
 
         it("should resolve the same instance within the same scope", () => {

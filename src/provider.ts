@@ -86,19 +86,19 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
 /**
  * Creates a scoped provider that will take its resolution from a passed scope
  * or create a new one and save it if there is none.
- * If no scope is passed, it will create a new instance on each call.
+ * If no scope is passed, it will act as a singleton.
  *
  * @example
  * ```ts
  * const getThing = scoped(() => createThing())
- * getThing() !== getThing()
+ * getThing() === getThing()
  * ```
  *
  * @example
  * ```ts
  * const getThing = scoped(() => createThing())
  * const scope = createScope()
- * getThing({ scope }) === getThing({ scope })
+ * getThing({ scope }) === getThing({ scope }) !== getThing()
  * ```
  *
  * @param resolver
@@ -108,11 +108,13 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
  * @returns The scoped provider.
  */
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
+    const singletonFallback = singleton(resolver);
+
     const instance: Resolver<T> = (context) => {
         const maybeMock = context?.mocks?.get(instance);
         if (maybeMock) return maybeMock(context);
 
-        if (!context?.scope) return resolver(context);
+        if (!context?.scope) return singletonFallback(context);
 
         const resolution = context.scope.has(resolver)
             ? context.scope.get(resolver)
