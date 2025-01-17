@@ -1,4 +1,4 @@
-import { MockMap } from "./mock-map";
+import { Mocks } from "./mocking";
 import { Scope } from "./scope";
 
 /**
@@ -11,7 +11,7 @@ export type Resolver<T> = (context?: ResolutionContext) => T;
  * A function that resolves an instance or a `Promise` of a particular type
  * based on a resolution context passed to it.
  */
-export type Provider<T> = Resolver<T> & { __brand: "provider" };
+export type Provider<T> = Resolver<T>;
 
 /**
  * A context used by providers to resolve instances
@@ -19,21 +19,14 @@ export type Provider<T> = Resolver<T> & { __brand: "provider" };
  */
 export type ResolutionContext = {
     scope?: Scope;
-    mocks?: MockMap;
+    mocks?: Mocks;
 };
 
-/**
- * Creating a nominal type value and introducing common functionality.
- */
-const createProvider = <T>(resolver: Resolver<T>): Provider<T> => {
-    const instance: Resolver<T> = (context) => {
-        const maybeMock = context?.mocks?.get(instance);
-        if (maybeMock) return maybeMock(context);
+const mockable = <T>(resolver: Resolver<T>): Resolver<T> => {
+    const instance = (context?: ResolutionContext) =>
+        context?.mocks?.resolve(instance, context) || resolver(context);
 
-        return resolver(context);
-    };
-
-    return Object.assign(instance, { __brand: "provider" as const });
+    return instance;
 };
 
 /**
@@ -51,7 +44,7 @@ const createProvider = <T>(resolver: Resolver<T>): Provider<T> => {
  *
  * @returns The transient provider.
  */
-export const transient = createProvider;
+export const transient = mockable;
 
 /**
  * Creates a singleton provider that will resolve an instance once
@@ -73,7 +66,7 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
     let resolved = false;
     let resolution: T | undefined;
 
-    const instance = createProvider((context) => {
+    const instance = mockable((context) => {
         if (resolved) return resolution!;
 
         resolution = resolver(context);
@@ -112,16 +105,11 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
     const singletonFallback = singleton(resolver);
 
-    const instance = createProvider((context) => {
-        if (!context?.scope) return singletonFallback(context);
-
-        const resolution = context.scope.has(instance)
-            ? context.scope.get(instance)
-            : resolver(context);
-        context.scope.set(instance, resolution);
-
-        return resolution;
-    });
+    const instance = mockable((context) =>
+        context?.scope
+            ? context.scope.resolve(instance, context)
+            : singletonFallback(context),
+    );
 
     return instance;
 };

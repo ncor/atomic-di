@@ -1,27 +1,21 @@
-import { Resolver } from "./provider";
+import { Provider, ResolutionContext, Resolver } from "./provider";
 
-/**
- * A `Map` of providers to their instances
- * that is then passed to a provider call in a resolution context object
- * to resolve instances of scoped providers within it.
- */
-export type Scope = Map<Resolver<any>, any>;
+export type Scope = {
+    resolve<T>(provider: Provider<T>, context?: ResolutionContext): T;
+};
 
-/**
- * Creates a `Map` of providers to their instances
- * that is then passed to a provider call in a resolution context object
- * to resolve instances of scoped providers within it.
- *
- * @example
- * ```ts
- * const requestScope = createScope()
- *
- * app.use(() => {
- *     const db = getDb({ scope: requestScope })
- *     // ...
- * })
- * ```
- *
- * @returns The map instance.
- */
-export const createScope = (): Scope => new Map();
+export const createScope = (): Scope => {
+    const map = new Map<Resolver<any>, any>();
+
+    return {
+        resolve(provider, context) {
+            const resolution = map.has(provider)
+                ? map.get(provider)
+                : provider(context);
+
+            map.set(provider, resolution);
+
+            return resolution;
+        },
+    };
+};
