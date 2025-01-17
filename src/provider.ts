@@ -11,7 +11,7 @@ export type Resolver<T> = (context?: ResolutionContext) => T;
  * A function that resolves an instance or a `Promise` of a particular type
  * based on a resolution context passed to it.
  */
-export type Provider<T> = Resolver<T>;
+export type Provider<T> = Resolver<T> & { __brand: "provider" };
 
 /**
  * A context used by providers to resolve instances
@@ -22,15 +22,18 @@ export type ResolutionContext = {
     mocks?: MockMap;
 };
 
-const mockable = <T>(resolver: Resolver<T>): Provider<T> => {
-    const instance: Provider<T> = (context) => {
+/**
+ * Creating a nominal type value and introducing common functionality.
+ */
+const createProvider = <T>(resolver: Resolver<T>): Provider<T> => {
+    const instance: Resolver<T> = (context) => {
         const maybeMock = context?.mocks?.get(instance);
         if (maybeMock) return maybeMock(context);
 
         return resolver(context);
     };
 
-    return instance;
+    return Object.assign(instance, { __brand: "provider" as const });
 };
 
 /**
@@ -48,7 +51,7 @@ const mockable = <T>(resolver: Resolver<T>): Provider<T> => {
  *
  * @returns The transient provider.
  */
-export const transient = mockable;
+export const transient = createProvider;
 
 /**
  * Creates a singleton provider that will resolve an instance once
@@ -70,7 +73,7 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
     let resolved = false;
     let resolution: T | undefined;
 
-    const instance: Resolver<T> = mockable((context) => {
+    const instance = createProvider((context) => {
         if (resolved) return resolution!;
 
         resolution = resolver(context);
@@ -109,13 +112,13 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
     const singletonFallback = singleton(resolver);
 
-    const instance: Resolver<T> = mockable((context) => {
+    const instance = createProvider((context) => {
         if (!context?.scope) return singletonFallback(context);
 
-        const resolution = context.scope.has(resolver)
-            ? context.scope.get(resolver)
+        const resolution = context.scope.has(instance)
+            ? context.scope.get(instance)
             : resolver(context);
-        context.scope.set(resolver, resolution);
+        context.scope.set(instance, resolution);
 
         return resolution;
     });
