@@ -22,6 +22,17 @@ export type ResolutionContext = {
     mocks?: MockMap;
 };
 
+const mockable = <T>(resolver: Resolver<T>): Provider<T> => {
+    const instance: Provider<T> = (context) => {
+        const maybeMock = context?.mocks?.get(instance);
+        if (maybeMock) return maybeMock(context);
+
+        return resolver(context);
+    };
+
+    return instance;
+};
+
 /**
  * Creates a transient provider that will resolve a new instance on each call.
  *
@@ -37,16 +48,7 @@ export type ResolutionContext = {
  *
  * @returns The transient provider.
  */
-export const transient = <T>(resolver: Resolver<T>): Provider<T> => {
-    const instance: Resolver<T> = (context) => {
-        const maybeMock = context?.mocks?.get(instance);
-        if (maybeMock) return maybeMock(context);
-
-        return resolver(context);
-    };
-
-    return instance;
-};
+export const transient = mockable;
 
 /**
  * Creates a singleton provider that will resolve an instance once
@@ -68,17 +70,14 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
     let resolved = false;
     let resolution: T | undefined;
 
-    const instance: Resolver<T> = (context) => {
-        const maybeMock = context?.mocks?.get(instance);
-        if (maybeMock) return maybeMock(context);
-
+    const instance: Resolver<T> = mockable((context) => {
         if (resolved) return resolution!;
 
         resolution = resolver(context);
         resolved = true;
 
         return resolution;
-    };
+    });
 
     return instance;
 };
@@ -110,10 +109,7 @@ export const singleton = <T>(resolver: Resolver<T>): Provider<T> => {
 export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
     const singletonFallback = singleton(resolver);
 
-    const instance: Resolver<T> = (context) => {
-        const maybeMock = context?.mocks?.get(instance);
-        if (maybeMock) return maybeMock(context);
-
+    const instance: Resolver<T> = mockable((context) => {
         if (!context?.scope) return singletonFallback(context);
 
         const resolution = context.scope.has(resolver)
@@ -122,7 +118,7 @@ export const scoped = <T>(resolver: Resolver<T>): Provider<T> => {
         context.scope.set(resolver, resolution);
 
         return resolution;
-    };
+    });
 
     return instance;
 };
