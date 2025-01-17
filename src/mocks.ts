@@ -25,9 +25,9 @@ export type Mocks = {
     get<T>(original: Provider<T>): Mock<T> | undefined;
 };
 
-export const defineMocks = (entries: MocksEntries = []): Mocks => {
+export const createMocks = (entries: MocksEntries = []): Mocks => {
     const set = (key: Provider<any>, value: Mock<any>) =>
-        defineMocks([
+        createMocks([
             ...entries.filter((entry) => entry[0] !== key),
             [key, value],
         ]);
