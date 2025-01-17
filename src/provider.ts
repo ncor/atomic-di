@@ -23,8 +23,22 @@ export type ResolutionContext = {
 };
 
 const mockable = <T>(resolver: Resolver<T>): Resolver<T> => {
-    const instance = (context?: ResolutionContext) =>
-        context?.mocks?.resolve(instance, context) || resolver(context);
+    const instance = (context?: ResolutionContext) => {
+        const mock = context?.mocks?.get(instance);
+        if (!mock) return resolver(context);
+
+        if (!mock.isPartial) return mock.provider(context) as T;
+
+        const resolution = resolver(context);
+        const mockResolution = mock.provider(context);
+
+        if (resolution instanceof Promise || mockResolution instanceof Promise)
+            return Promise.all([resolution, mockResolution]).then(([a, b]) =>
+                Object.assign(a as object, b),
+            ) as T;
+
+        return Object.assign(resolution as object, mockResolution) as T;
+    };
 
     return instance;
 };

@@ -22,12 +22,10 @@ export type Mocks = {
         original: Provider<T>,
         mock: Provider<MaybePromisePartial<T>>,
     ): Mocks;
-    resolve<T>(original: Provider<T>, context?: ResolutionContext): T;
+    get<T>(original: Provider<T>): Mock<T> | undefined;
 };
 
 export const createMocks = (entries: MocksEntries = []): Mocks => {
-    const get = (key: Provider<any>) =>
-        entries.find((entry) => entry[0] === key)?.[1];
     const set = (key: Provider<any>, value: Mock<any>) =>
         createMocks([
             ...entries.filter((entry) => entry[0] !== key),
@@ -47,27 +45,8 @@ export const createMocks = (entries: MocksEntries = []): Mocks => {
                 provider: mock,
             });
         },
-        resolve<T>(original: Provider<T>, context?: ResolutionContext) {
-            const mock = get(original);
-            if (!mock) return original(context);
-
-            if (!mock.isPartial) return mock.provider(context) as T;
-
-            const originalResolution = original(context);
-            const mockResolution = mock.provider(context);
-
-            if (
-                originalResolution instanceof Promise ||
-                mockResolution instanceof Promise
-            )
-                return Promise.all([originalResolution, mockResolution]).then(
-                    ([a, b]) => Object.assign(a as object, b),
-                ) as T;
-
-            return Object.assign(
-                originalResolution as object,
-                mockResolution,
-            ) as T;
+        get(original) {
+            return entries.find((entry) => entry[0] === original)?.[1];
         },
     };
 };
