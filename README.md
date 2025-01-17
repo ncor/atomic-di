@@ -566,7 +566,9 @@ A function that returns a value of a particular type with a resolution context b
 
 ### `Provider`
 ```ts
-type Provider<T> = (context?: ResolutionContext) => T
+type Provider<T> = Resolver<T> & {
+    __brand: "provider"
+}
 ```
 
 A function that resolves an instance or a `Promise` of a particular type based on a resolution context passed to it.
