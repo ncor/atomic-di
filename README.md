@@ -36,7 +36,7 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
 
 Before reading, it's highly recommended that you familiarize yourself with the concepts of inversion of control (IoC) and dependency injection (DI), as well as DI techniques.
 
-If you need a container to build your application, or you are satisfied with pure dependency injection, you should definitely consider other solutions, or not use a framework at all.
+If you need a container to build your application, or you are satisfied with classic pure dependency injection, you should definitely consider other solutions, or not use a framework at all.
 
 This library is an attempt to provide full-featured dependency injection **without containers**.
 
