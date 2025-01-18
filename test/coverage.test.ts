@@ -1,278 +1,233 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, assert, vi } from "vitest";
 
 import { createScope } from "../src/scope";
 import { createMockMap } from "../src/mock-map";
-import { transient, singleton, scoped } from "../src/provider";
 import { resolveList, resolveMap } from "../src/collection-resolution";
+import { scoped, singleton, transient } from "../src";
 
-describe("provider", () => {
+describe("scope", () => {
+    it("should create a scope", () => {
+        const scope = createScope();
+
+        expect(scope).not.toBe(undefined);
+        expect(scope).toBeInstanceOf(Map);
+    });
+});
+
+describe("mock map", () => {
+    it("should create a mock map", () => {
+        const mocks = createMockMap();
+
+        expect(mocks).not.toBe(undefined);
+    });
+
+    it("should correctly register and get a mock", () => {
+        const getRed = transient(() => "red");
+        const getBlue = transient(() => "blue");
+        const mocks = createMockMap().mock(getRed, getBlue);
+        const mock = mocks.get(getRed)!;
+
+        expect(mock.resolver).toBe(getBlue);
+        expect(mock.isPartial).toBe(false);
+    });
+
+    it("should correctly register and get a partial mock", () => {
+        const getRed = transient(() => ({ value: "red" }));
+        const getBlue = transient(() => ({ value: "blue" }));
+        const mocks = createMockMap().mockPartially(getRed, getBlue);
+        const mock = mocks.get(getRed)!;
+
+        expect(mock.resolver).toBe(getBlue);
+        expect(mock.isPartial).toBe(true);
+    });
+
+    it("should return undefined if mock doesn't exist", () => {
+        const getRed = transient(() => ({ value: "red" }));
+        const getBlue = transient(() => ({ value: "blue" }));
+        const mocks = createMockMap().mockPartially(getRed, getBlue);
+        const mock = mocks.get(transient(() => {}))!;
+
+        expect(mock).toBe(undefined);
+    });
+});
+
+describe("resolver", () => {
     describe("transient", () => {
-        it("should always resolve a new instance", () => {
-            let counter = 0;
-            const resolver = () => counter++;
-            const provider = transient(resolver);
+        it("should create a transient resolver", () => {
+            const getRed = transient(() => "red");
 
-            expect(provider()).toBe(0);
-            expect(provider()).toBe(1);
-            expect(provider()).toBe(2);
+            expect(getRed).not.toBe(undefined);
+            expect(getRed).toBeTypeOf("function");
         });
 
-        it("should pass context to a resolver", () => {
-            const resolver = (context) => context!;
-            const provider = transient(resolver);
-            const context = { scope: createScope(), mocks: createMockMap() };
+        it("should create a new resolution on each call", () => {
+            const redResolverFn = vi.fn(() => ({ value: "red" }));
+            const getRed = transient(redResolverFn);
+            const red1 = getRed();
+            const red2 = getRed();
 
-            expect(provider(context)).toBe(context);
+            expect(red1).toStrictEqual({ value: "red" });
+            expect(red1).not.toBe(red2);
+            expect(redResolverFn).toBeCalledTimes(2);
         });
     });
 
     describe("singleton", () => {
-        it("should resolve the same instance on each call", () => {
-            let counter = 0;
-            const resolver = () => counter++;
-            const provider = singleton(resolver);
-            expect(provider()).toBe(0);
-            expect(provider()).toBe(0);
-            expect(provider()).toBe(0);
+        it("should create a singleton resolver", () => {
+            const getRed = singleton(() => "red");
+
+            expect(getRed).not.toBe(undefined);
+            expect(getRed).toBeTypeOf("function");
         });
 
-        it("should pass context to a resolver", () => {
-            const resolver = (context) => context!;
-            const provider = singleton(resolver);
-            const context = { scope: createScope(), mocks: createMockMap() };
+        it("should create a resolution once and return in on each call", () => {
+            const redResolverFn = vi.fn(() => ({ value: "red" }));
+            const getRed = singleton(redResolverFn);
+            const red1 = getRed();
+            const red2 = getRed();
 
-            expect(provider(context)).toBe(context);
+            expect(red1).toStrictEqual({ value: "red" });
+            expect(red1).toBe(red2);
+            expect(redResolverFn).toBeCalledTimes(1);
         });
     });
 
     describe("scoped", () => {
-        it("should resolve as a singleton if no scope is provided", () => {
-            let counter = 0;
-            const resolver = () => counter++;
-            const provider = scoped(resolver);
+        it("should create a scoped resolver", () => {
+            const getRed = scoped(() => "red");
 
-            expect(provider()).toBe(0);
-            expect(provider()).toBe(0);
+            expect(getRed).not.toBe(undefined);
+            expect(getRed).toBeTypeOf("function");
         });
 
-        it("should resolve the same instance within the same scope", () => {
-            let counter = 0;
-            const resolver = () => counter++;
-            const provider = scoped(resolver);
+        it("should create a resolution and save it in scope", () => {
+            const redResolverFn = vi.fn(() => ({ value: "red" }));
+            const getRed = scoped(redResolverFn);
             const scope = createScope();
-            const context = { scope };
+            const red = getRed({ scope });
 
-            expect(provider(context)).toBe(0);
-            expect(provider(context)).toBe(0);
-            expect(provider(context)).toBe(0);
-            expect(scope.size).toBe(1);
+            expect(red).toStrictEqual({ value: "red" });
+            expect(scope.get(getRed)).toBe(red);
+            expect(redResolverFn).toBeCalledTimes(1);
         });
 
-        it("should resolve different instances in different scopes", () => {
-            let counter = 0;
-            const resolver = () => counter++;
-            const provider = scoped(resolver);
-            const scope1 = createScope();
-            const scope2 = createScope();
-            const context1 = { scope: scope1 };
-            const context2 = { scope: scope2 };
-
-            expect(provider(context1)).toBe(0);
-            expect(provider(context2)).toBe(1);
-            expect(scope1.size).toBe(1);
-            expect(scope2.size).toBe(1);
-        });
-
-        it("should use the same scope across different providers", () => {
-            let counter = 0;
-            const resolver1 = () => counter++;
-            const resolver2 = () => counter++;
-            const provider1 = scoped(resolver1);
-            const provider2 = scoped(resolver2);
+        it("should retrieve existing resolution from a scope", () => {
+            const redResolverFn = vi.fn(() => ({ value: "red" }));
+            const getRed = scoped(redResolverFn);
             const scope = createScope();
-            const context = { scope };
+            const red1 = getRed({ scope });
+            const red2 = getRed({ scope });
 
-            expect(provider1(context)).toBe(0);
-            expect(provider2(context)).toBe(1);
-            expect(provider1(context)).toBe(0);
-            expect(provider2(context)).toBe(1);
-            expect(scope.size).toBe(2);
+            expect(red1).toBe(red2);
+            expect(scope.get(getRed)).toBe(red1);
+            expect(redResolverFn).toBeCalledTimes(1);
         });
 
-        it("should pass context to a resolver", () => {
-            const resolver = (context) => context!;
-            const provider = scoped(resolver);
-            const scope = createScope();
-            const context = { scope, mocks: createMockMap() };
+        it("should act as a singleton if no scope was passed", () => {
+            const redResolverFn = vi.fn(() => ({ value: "red" }));
+            const getRed = scoped(redResolverFn);
+            const red1 = getRed();
+            const red2 = getRed();
 
-            expect(provider(context)).toBe(context);
+            expect(red1).toBe(red2);
+            expect(redResolverFn).toBeCalledTimes(1);
         });
     });
 
-    it("should use a mock if present", () => {
-        const resolver = () => 10;
-        const provider = transient(resolver);
-        const mock = () => 100;
-        const mocks = createMockMap().set(provider, mock);
-        const context = { mocks };
+    describe("mocking", () => {
+        it("should mock itself", () => {
+            const redResolverFn = vi.fn(() => "red");
+            const getRed = transient(redResolverFn);
+            const getBlue = transient(() => "blue");
+            const mocks = createMockMap().mock(getRed, getBlue);
+            const resolution = getRed({ mocks });
 
-        expect(provider(context)).toBe(100);
-    });
-
-    it("should use a mock in a singleton provider if present", () => {
-        const resolver = () => 10;
-        const provider = singleton(resolver);
-        const mock = () => 100;
-        const mocks = createMockMap().set(provider, mock);
-        const context = { mocks };
-
-        expect(provider(context)).toBe(100);
-        expect(provider()).toBe(10);
-    });
-
-    it("should use a mock in a scoped provider if present", () => {
-        let counter = 0;
-        const resolver = () => counter++;
-        const provider = scoped(resolver);
-        const mock = () => 100;
-        const mocks = createMockMap().set(provider, mock);
-        const scope = createScope();
-        const context = { mocks, scope };
-
-        expect(provider(context)).toBe(100);
-        expect(provider(context)).toBe(100);
-        expect(provider()).toBe(0);
-    });
-
-    it("should use a mock in nested providers", () => {
-        const mockValue = { value: "mocked" };
-        const mock = () => mockValue;
-
-        const dependencyProvider = transient(() => ({
-            value: "real value",
-        }));
-        const provider = transient((context) => {
-            return dependencyProvider(context);
+            expect(resolution).toBe("blue");
+            expect(redResolverFn).toBeCalledTimes(0);
         });
 
-        const mocks = createMockMap().set(dependencyProvider, mock);
-        const context = { mocks };
+        it("should partially mock itself", () => {
+            const redResolverFn = vi.fn(() => ({
+                value: "red",
+                origin: "red",
+            }));
+            const getRed = transient(redResolverFn);
+            const getBlue = transient(() => ({ value: "blue" }));
+            const mocks = createMockMap().mockPartially(getRed, getBlue);
+            const resolution = getRed({ mocks });
 
-        expect(provider(context)).toBe(mockValue);
+            expect(resolution).toStrictEqual({ value: "blue", origin: "red" });
+            expect(redResolverFn).toBeCalledTimes(1);
+        });
+
+        it("should partially mock own resolution promise", async () => {
+            const redResolverFn = vi.fn(async () => ({
+                value: "red",
+                origin: "red",
+            }));
+            const getRed = transient(redResolverFn);
+            const getBlue = transient(async () => ({ value: "blue" }));
+            const mocks = createMockMap().mockPartially(getRed, getBlue);
+            const resolution = await getRed({ mocks });
+
+            expect(resolution).toStrictEqual({ value: "blue", origin: "red" });
+            expect(redResolverFn).toBeCalledTimes(1);
+        });
     });
 });
 
-describe("resolveList", () => {
-    it("should resolve a list of providers with context", () => {
-        const provider1 = transient(() => 1);
-        const provider2 = singleton(() => 2);
-        const scope = createScope();
-        const context = { scope, mocks: createMockMap() };
-        const result = resolveList([provider1, provider2], context);
-        expect(result).toEqual([1, 2]);
+describe("collection resolution", () => {
+    describe("list resolution", () => {
+        it("should resolve a list with a common context", () => {
+            const getRed = scoped(() => "red");
+            const getBlue = scoped(() => "blue");
+            const scope = createScope();
+            const resolutions = resolveList([getRed, getBlue], { scope });
+
+            expect(resolutions).toStrictEqual(["red", "blue"]);
+            expect(scope.get(getRed)).toBe("red");
+            expect(scope.get(getBlue)).toBe("blue");
+        });
+
+        it("should return a promise of a list of awaited resolutions", async () => {
+            const getRed = scoped(() => "red");
+            const getBlue = scoped(async () => "blue");
+            const scope = createScope();
+            const resolutions = await resolveList([getRed, getBlue], { scope });
+
+            expect(resolutions).toStrictEqual(["red", "blue"]);
+            expect(scope.get(getRed)).toBe("red");
+            expect(await scope.get(getBlue)).toBe("blue");
+        });
     });
 
-    it("should resolve a list of providers without context", () => {
-        const provider1 = transient(() => 1);
-        const provider2 = singleton(() => 2);
-        const result = resolveList([provider1, provider2]);
-        expect(result).toEqual([1, 2]);
-    });
+    describe("map resolution", () => {
+        it("should resolve a map with a common context", () => {
+            const getRed = scoped(() => "red");
+            const getBlue = scoped(() => "blue");
+            const scope = createScope();
+            const resolutions = resolveMap(
+                { red: getRed, blue: getBlue },
+                { scope },
+            );
 
-    it("should resolve a list of providers with different types", () => {
-        const provider1 = transient(() => 1);
-        const provider2 = singleton(() => "2");
-        const result = resolveList([provider1, provider2]);
-        expect(result).toEqual([1, "2"]);
-    });
+            expect(resolutions).toStrictEqual({ red: "red", blue: "blue" });
+            expect(scope.get(getRed)).toBe("red");
+            expect(scope.get(getBlue)).toBe("blue");
+        });
 
-    it("should resolve a list with promises", async () => {
-        const provider1 = transient(async () => 1);
-        const provider2 = singleton(async () => 2);
-        const result = await resolveList([provider1, provider2]);
-        expect(result).toEqual([1, 2]);
-    });
-    it("should resolve a list with mixed values and promises", async () => {
-        const provider1 = transient(() => 1);
-        const provider2 = singleton(async () => 2);
-        const result = await resolveList([provider1, provider2]);
-        expect(result).toEqual([1, 2]);
-    });
+        it("should return a promise of a map of awaited resolutions", async () => {
+            const getRed = scoped(() => "red");
+            const getBlue = scoped(async () => "blue");
+            const scope = createScope();
+            const resolutions = await resolveMap(
+                { red: getRed, blue: getBlue },
+                { scope },
+            );
 
-    it("should use mock providers if provided", async () => {
-        const provider1 = transient(() => 1);
-        const mock1 = () => 100;
-        const provider2 = singleton(async () => 2);
-        const mock2 = async () => 200;
-        const mocks = createMockMap()
-            .set(provider1, mock1)
-            .set(provider2, mock2);
-        const context = { mocks };
-        const result = await resolveList([provider1, provider2], context);
-        expect(result).toEqual([100, 200]);
-    });
-});
-
-describe("resolveMap", () => {
-    it("should resolve a map of providers with context", () => {
-        const providers = {
-            a: transient(() => 1),
-            b: singleton(() => 2),
-        };
-        const scope = createScope();
-        const context = { scope, mocks: createMockMap() };
-        const result = resolveMap(providers, context);
-        expect(result).toEqual({ a: 1, b: 2 });
-    });
-
-    it("should resolve a map of providers without context", () => {
-        const providers = {
-            a: transient(() => 1),
-            b: singleton(() => 2),
-        };
-        const result = resolveMap(providers);
-        expect(result).toEqual({ a: 1, b: 2 });
-    });
-
-    it("should resolve a map of providers with different types", () => {
-        const providers = {
-            a: transient(() => 1),
-            b: singleton(() => "2"),
-        };
-        const result = resolveMap(providers);
-        expect(result).toEqual({ a: 1, b: "2" });
-    });
-
-    it("should resolve a map with promises", async () => {
-        const providers = {
-            a: transient(async () => 1),
-            b: singleton(async () => 2),
-        };
-        const result = await resolveMap(providers);
-        expect(result).toEqual({ a: 1, b: 2 });
-    });
-
-    it("should resolve a map with mixed values and promises", async () => {
-        const providers = {
-            a: transient(() => 1),
-            b: singleton(async () => 2),
-        };
-        const result = await resolveMap(providers);
-        expect(result).toEqual({ a: 1, b: 2 });
-    });
-
-    it("should use mock providers if provided", async () => {
-        const providers = {
-            a: transient(() => 1),
-            b: singleton(async () => 2),
-        };
-        const mockA = () => 100;
-        const mockB = async () => 200;
-        const mocks = createMockMap()
-            .set(providers.a, mockA)
-            .set(providers.b, mockB);
-        const context = { mocks };
-        const result = await resolveMap(providers, context);
-        expect(result).toEqual({ a: 100, b: 200 });
+            expect(resolutions).toStrictEqual({ red: "red", blue: "blue" });
+            expect(scope.get(getRed)).toBe("red");
+            expect(await scope.get(getBlue)).toBe("blue");
+        });
     });
 });
