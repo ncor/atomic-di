@@ -1,4 +1,4 @@
 export * from "./resolver";
 export * from "./scope";
-export * from "./mocks";
+export * from "./mock-map";
 export * from "./collection-resolution";
