@@ -31,17 +31,17 @@ const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
         const mock = context?.mocks?.get(instance);
         if (!mock) return fn(context);
 
-        if (!mock.isPartial) return mock.resolver(context) as T;
+        if (!mock.isPartial) return mock.resolver(context);
 
         const resolution = fn(context);
         const mockResolution = mock.resolver(context);
 
-        if (resolution instanceof Promise || mockResolution instanceof Promise)
+        if (resolution instanceof Promise && mockResolution instanceof Promise)
             return Promise.all([resolution, mockResolution]).then(([a, b]) =>
                 Object.assign(a as object, b),
             ) as T;
 
-        return Object.assign(resolution as object, mockResolution) as T;
+        return Object.assign(resolution as object, mockResolution);
     };
 
     return instance;
