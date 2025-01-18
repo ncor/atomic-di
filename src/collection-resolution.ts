@@ -1,12 +1,12 @@
-import { Provider, ResolutionContext } from "./provider";
+import { ResolutionContext, Resolver } from "./resolver";
 
-type ProviderList = Provider<any>[];
-type ProviderRecord = Record<string, Provider<any>>;
+type ResolverList = Resolver<any>[];
+type ResolverRecord = Record<string, Resolver<any>>;
 
-type InferProviderCollectionResolutions<
-    Providers extends ProviderList | ProviderRecord,
+type InferResolverCollectionResolutions<
+    Resolvers extends ResolverList | ResolverRecord,
 > = {
-    [K in keyof Providers]: Providers[K] extends Provider<infer T> ? T : never;
+    [K in keyof Resolvers]: Resolvers[K] extends Resolver<infer T> ? T : never;
 };
 
 /**
@@ -22,12 +22,12 @@ type AwaitValuesInCollection<T extends any[] | Record<any, any>> =
         : T;
 
 /**
- * Calls every provider in a list with a provided resolution context
+ * Calls every resolver in a list with a provided resolution context
  * and returns a list of resolutions. Returns a `Promise` of a list
  * of awaited resolutions if there's at least one `Promise` in the resolutions.
  *
  * @example
- * Only sync providers:
+ * Only sync resolvers:
  * ```ts
  * const getA = scoped(() => createA())
  * const getB = scoped(() => createB())
@@ -47,7 +47,7 @@ type AwaitValuesInCollection<T extends any[] | Record<any, any>> =
  * ```
  *
  * @example
- * Some provider is async:
+ * Some resolver is async:
  * ```ts
  * const getA = scoped(() => createA())
  * const getB = scoped(async () => await createB())
@@ -66,18 +66,18 @@ type AwaitValuesInCollection<T extends any[] | Record<any, any>> =
  * ]
  * ```
  *
- * @param providers - The list of providers.
+ * @param resolvers - The list of resolvers.
  * @param context - The resolution context.
  *
  * @returns The list of resolutions.
  */
-export const resolveList = <const Providers extends ProviderList>(
-    providers: Providers,
+export const resolveList = <const Resolvers extends ResolverList>(
+    resolvers: Resolvers,
     context?: ResolutionContext,
 ): AwaitValuesInCollection<
-    InferProviderCollectionResolutions<Providers>
+    InferResolverCollectionResolutions<Resolvers>
 > => {
-    const resolutions = providers.map((provider) => provider(context));
+    const resolutions = resolvers.map((resolver) => resolver(context));
 
     const hasPromises = resolutions.some(
         (resolution) => resolution instanceof Promise,
@@ -87,13 +87,13 @@ export const resolveList = <const Providers extends ProviderList>(
 };
 
 /**
- * Calls every provider in a map with a provided resolution context
+ * Calls every resolver in a map with a provided resolution context
  * and returns a map with identical keys but with resolutions in values instead.
  * Returns a `Promise` of a map of awaited resolutions if there's at least one
  * `Promise` in the resolutions.
  *
  * @example
- * Only sync providers:
+ * Only sync resolvers:
  * ```ts
  * const getA = scoped(() => createA())
  * const getB = scoped(() => createB())
@@ -113,7 +113,7 @@ export const resolveList = <const Providers extends ProviderList>(
  * ```
  *
  * @example
- * Some provider is async:
+ * Some resolver is async:
  * ```ts
  * const getA = scoped(() => createA())
  * const getB = scoped(async () => await createB())
@@ -132,19 +132,19 @@ export const resolveList = <const Providers extends ProviderList>(
  * }
  * ```
  *
- * @param providers - The map of providers.
+ * @param resolvers - The map of resolvers.
  * @param context - The resolution context.
  *
  * @returns The map of resolutions.
  */
-export const resolveMap = <const Providers extends ProviderRecord>(
-    providers: Providers,
+export const resolveMap = <const Resolvers extends ResolverRecord>(
+    resolvers: Resolvers,
     context?: ResolutionContext,
 ): AwaitValuesInCollection<
-    InferProviderCollectionResolutions<Providers>
+    InferResolverCollectionResolutions<Resolvers>
 > => {
-    const resolutionMapEntries = Object.entries(providers).map(
-        ([key, provider]) => [key, provider(context)],
+    const resolutionMapEntries = Object.entries(resolvers).map(
+        ([key, resolver]) => [key, resolver(context)],
     );
 
     const hasPromises = resolutionMapEntries.some(
