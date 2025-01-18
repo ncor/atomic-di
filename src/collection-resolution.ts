@@ -1,14 +1,12 @@
 import { ResolutionContext, Resolver } from "./resolver";
 
-type ResolverList = Resolver<any, any>[];
-type ResolverRecord = Record<string, Resolver<any, any>>;
+type ResolverList = Resolver<any>[];
+type ResolverRecord = Record<string, Resolver<any>>;
 
 type InferResolverCollectionResolutions<
     Resolvers extends ResolverList | ResolverRecord,
 > = {
-    [K in keyof Resolvers]: Resolvers[K] extends Resolver<infer T, any>
-        ? T
-        : never;
+    [K in keyof Resolvers]: Resolvers[K] extends Resolver<infer T> ? T : never;
 };
 
 /**

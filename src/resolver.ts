@@ -1,4 +1,4 @@
-import { Mocks } from "./mocks";
+import { MockMap } from "./mock-map";
 import { Scope } from "./scope";
 
 /**
@@ -8,19 +8,10 @@ import { Scope } from "./scope";
 export type ResolverFn<T> = (context?: ResolutionContext) => T;
 
 /**
- * A lifetime of the resolution, which is included in the resolver type.
- * This is necessary in order to provide mocks with the same lifetime
- * as the original.
- */
-export type ResolutionLifetime = "transient" | "singleton" | "scoped";
-
-/**
  * A function that returns a value of some type
  * based on a resolution context.
  */
-export type Resolver<T, L extends ResolutionLifetime> = ResolverFn<T> & {
-    lifetime: L;
-};
+export type Resolver<T> = ResolverFn<T>;
 
 /**
  * A context used by resolvers that defines the behavior of the resolver
@@ -28,7 +19,7 @@ export type Resolver<T, L extends ResolutionLifetime> = ResolverFn<T> & {
  */
 export type ResolutionContext = {
     scope?: Scope;
-    mocks?: Mocks;
+    mocks?: MockMap;
 };
 
 /**
@@ -40,10 +31,10 @@ const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
         const mock = context?.mocks?.get(instance);
         if (!mock) return fn(context);
 
-        if (!mock.isPartial) return mock.provider(context) as T;
+        if (!mock.isPartial) return mock.resolver(context) as T;
 
         const resolution = fn(context);
-        const mockResolution = mock.provider(context);
+        const mockResolution = mock.resolver(context);
 
         if (resolution instanceof Promise || mockResolution instanceof Promise)
             return Promise.all([resolution, mockResolution]).then(([a, b]) =>
@@ -61,20 +52,17 @@ const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
  *
  * @example
  * ```ts
- * const getThing = transient(() => createThing())
- * getThing() !== getThing()
+ * const getEntity = transient(() => createEntity())
+ * getEntity() !== getEntity()
  * ```
  *
  * @param resolver
- * A function that returns a value of some type
- * based on a resolution context.
+ * A function that takes a resolution context
+ * and returns a value of some type.
  *
  * @returns The transient resolver.
  */
-export const transient = <T>(fn: ResolverFn<T>): Resolver<T, "transient"> =>
-    Object.assign(mockable(fn), {
-        lifetime: "transient" as const,
-    });
+export const transient = <T>(fn: ResolverFn<T>): Resolver<T> => mockable(fn);
 
 /**
  * Creates a resolver that creates
@@ -82,17 +70,17 @@ export const transient = <T>(fn: ResolverFn<T>): Resolver<T, "transient"> =>
  *
  * @example
  * ```ts
- * const getThing = singleton(() => createThing())
- * getThing() === getThing()
+ * const getEntity = singleton(() => createEntity())
+ * getEntity() === getEntity()
  * ```
  *
  * @param fn
- * A function that returns a value of some type
- * based on a resolution context.
+ * A function that takes a resolution context
+ * and returns a value of some type.
  *
  * @returns The singleton resolver.
  */
-export const singleton = <T>(fn: ResolverFn<T>): Resolver<T, "singleton"> => {
+export const singleton = <T>(fn: ResolverFn<T>): Resolver<T> => {
     let resolved = false;
     let resolution: T | undefined;
 
@@ -105,9 +93,7 @@ export const singleton = <T>(fn: ResolverFn<T>): Resolver<T, "singleton"> => {
         return resolution;
     });
 
-    return Object.assign(instance, {
-        lifetime: "singleton" as const,
-    });
+    return instance;
 };
 
 /**
@@ -118,24 +104,24 @@ export const singleton = <T>(fn: ResolverFn<T>): Resolver<T, "singleton"> => {
  *
  * @example
  * ```ts
- * const getThing = scoped(() => createThing())
- * getThing() === getThing()
+ * const getEntity = scoped(() => createEntity())
+ * getEntity() === getEntity()
  * ```
  *
  * @example
  * ```ts
- * const getThing = scoped(() => createThing())
+ * const getEntity = scoped(() => createEntity())
  * const scope = createScope()
- * getThing({ scope }) === getThing({ scope }) !== getThing()
+ * getEntity({ scope }) === getEntity({ scope }) !== getEntity()
  * ```
  *
  * @param fn
- * A function that returns a value of some type
- * based on a resolution context.
+ * A function that takes a resolution context
+ * and returns a value of some type.
  *
- * @returns The scoped provider.
+ * @returns The scoped resolver.
  */
-export const scoped = <T>(fn: ResolverFn<T>): Resolver<T, "scoped"> => {
+export const scoped = <T>(fn: ResolverFn<T>): Resolver<T> => {
     const singletonFallback = singleton(fn);
 
     const instance = mockable((context) => {
@@ -150,7 +136,5 @@ export const scoped = <T>(fn: ResolverFn<T>): Resolver<T, "scoped"> => {
         return resolution;
     });
 
-    return Object.assign(instance, {
-        lifetime: "scoped" as const,
-    });
+    return instance;
 };
