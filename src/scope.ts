@@ -1,5 +1,5 @@
-import { Resolver } from "./resolver";
+import { ResolverFn } from "./resolver";
 
-export type Scope = Map<Resolver<any>, any>;
+export type Scope = Map<ResolverFn<any>, any>;
 
 export const createScope = (): Scope => new Map();

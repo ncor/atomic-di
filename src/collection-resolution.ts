@@ -1,12 +1,14 @@
 import { ResolutionContext, Resolver } from "./resolver";
 
-type ResolverList = Resolver<any>[];
-type ResolverRecord = Record<string, Resolver<any>>;
+type ResolverList = Resolver<any, any>[];
+type ResolverRecord = Record<string, Resolver<any, any>>;
 
 type InferResolverCollectionResolutions<
     Resolvers extends ResolverList | ResolverRecord,
 > = {
-    [K in keyof Resolvers]: Resolvers[K] extends Resolver<infer T> ? T : never;
+    [K in keyof Resolvers]: Resolvers[K] extends Resolver<infer T, any>
+        ? T
+        : never;
 };
 
 /**
@@ -74,9 +76,7 @@ type AwaitValuesInCollection<T extends any[] | Record<any, any>> =
 export const resolveList = <const Resolvers extends ResolverList>(
     resolvers: Resolvers,
     context?: ResolutionContext,
-): AwaitValuesInCollection<
-    InferResolverCollectionResolutions<Resolvers>
-> => {
+): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> => {
     const resolutions = resolvers.map((resolver) => resolver(context));
 
     const hasPromises = resolutions.some(
@@ -140,9 +140,7 @@ export const resolveList = <const Resolvers extends ResolverList>(
 export const resolveMap = <const Resolvers extends ResolverRecord>(
     resolvers: Resolvers,
     context?: ResolutionContext,
-): AwaitValuesInCollection<
-    InferResolverCollectionResolutions<Resolvers>
-> => {
+): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> => {
     const resolutionMapEntries = Object.entries(resolvers).map(
         ([key, resolver]) => [key, resolver(context)],
     );

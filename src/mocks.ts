@@ -1,4 +1,4 @@
-import { Resolver } from "./resolver";
+import { ResolverFn } from "./resolver";
 
 type OrAwaited<T> = T | Awaited<T>;
 type AwaitedPartial<T> = Partial<Awaited<T>>;
@@ -7,26 +7,26 @@ type MaybePromisePartial<T> = AwaitedPartial<T> | Promise<AwaitedPartial<T>>;
 type Mock<T> =
     | {
           isPartial: false;
-          provider: Resolver<OrAwaited<T>>;
+          provider: ResolverFn<OrAwaited<T>>;
       }
     | {
           isPartial: true;
-          provider: Resolver<MaybePromisePartial<T>>;
+          provider: ResolverFn<MaybePromisePartial<T>>;
       };
 
-type MocksEntries = [Resolver<any>, Mock<any>][];
+type MocksEntries = [ResolverFn<any>, Mock<any>][];
 
 export type Mocks = {
-    mock<T>(original: Resolver<T>, mock: Resolver<OrAwaited<T>>): Mocks;
+    mock<T>(original: ResolverFn<T>, mock: ResolverFn<OrAwaited<T>>): Mocks;
     mockPartially<T extends object>(
-        original: Resolver<T>,
-        mock: Resolver<MaybePromisePartial<T>>,
+        original: ResolverFn<T>,
+        mock: ResolverFn<MaybePromisePartial<T>>,
     ): Mocks;
-    get<T>(original: Resolver<T>): Mock<T> | undefined;
+    get<T>(original: ResolverFn<T>): Mock<T> | undefined;
 };
 
 export const createMocks = (entries: MocksEntries = []): Mocks => {
-    const set = (key: Resolver<any>, value: Mock<any>) =>
+    const set = (key: ResolverFn<any>, value: Mock<any>) =>
         createMocks([
             ...entries.filter((entry) => entry[0] !== key),
             [key, value],
