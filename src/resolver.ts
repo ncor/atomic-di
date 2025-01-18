@@ -48,7 +48,7 @@ const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
 };
 
 /**
- * Creates a resolver that creates a new instance on each call.
+ * Creates a resolver that creates a new resolution on each call.
  *
  * @example
  * ```ts
@@ -66,7 +66,7 @@ export const transient = <T>(fn: ResolverFn<T>): Resolver<T> => mockable(fn);
 
 /**
  * Creates a resolver that creates
- * an instance once and return it on each call.
+ * a resolution once and return it on each call.
  *
  * @example
  * ```ts
