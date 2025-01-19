@@ -600,13 +600,13 @@ type MockMap = {
 };
 ```
 - `mock`: Registers a mock for a resolver, creating a new `MockMap` with this registration.
-    - `original`: The original provider.
+    - `original`: The original resolver.
     - `mock`: The mock resolver.
 - `mockPartially`: Registers a partial mock for a resolver, creating a new `MockMap` with this registration. In this case, the mock resolver's resoluton object will be merged with the original resolver's resolution object, overwriting certain fields.
     - `original`: The original resolver.
     - `mock`: The mock resolver.
 - `get`: Returns a mock of a resolver or `undefined` if one is not registered.
-    - `original`: The original provider.
+    - `original`: The original resolver.
 
 Immutable map that registers and provides mocks. Is passed in a resolution context and used by resolvers to replace or partially replace themselves with a mock if one is defined.
 
