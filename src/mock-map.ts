@@ -86,6 +86,18 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
  * Is passed in a resolution context and used by resolvers
  * to replace or partially replace themselves with a mock if one is defined.
  *
+ * @example
+ * ```ts
+ * const mocks = createMockMap()
+ *     .mock(getDependency, getDependencyMock)
+ *     .mockPartially(
+ *         getOtherDepedency,
+ *         transient(() => ({ someField: "mock" }))
+ *     )
+ *
+ * const entityWithMocks = getEntity({ mocks })
+ * ```
+ *
  * @returns The mock map.
  */
 export const createMockMap = () => createMockMapWithEntries();
