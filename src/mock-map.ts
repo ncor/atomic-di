@@ -17,7 +17,7 @@ type MocksEntries = [Resolver<any>, Mock<any>][];
 
 /**
  * Immutable map that registers and provides mocks.
- * Is passed in the resolution context and used by resolvers
+ * Is passed in a resolution context and used by resolvers
  * to replace or partially replace themselves with a mock if one is defined.
  */
 export type MockMap = {
@@ -83,7 +83,7 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
 
 /**
  * Creates a mock map, an immutable map that registers and provides mocks.
- * Is passed in the resolution context and used by resolvers
+ * Is passed in a resolution context and used by resolvers
  * to replace or partially replace themselves with a mock if one is defined.
  *
  * @returns The mock map.
