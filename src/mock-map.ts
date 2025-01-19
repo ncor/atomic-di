@@ -82,7 +82,7 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
 };
 
 /**
- * Creates an mock map, an immutable map that registers and provides mocks.
+ * Creates a mock map, an immutable map that registers and provides mocks.
  * Is passed in the resolution context and used by resolvers
  * to replace or partially replace themselves with a mock if one is defined.
  *
