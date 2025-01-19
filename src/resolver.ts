@@ -14,7 +14,7 @@ export type ResolverFn<T> = (context?: ResolutionContext) => T;
 export type Resolver<T> = ResolverFn<T>;
 
 /**
- * A context used by resolvers that defines the behavior of the resolver
+ * A context used by resolvers that defines the behaviour of the resolver
  * with the passed mocks and scope.
  */
 export type ResolutionContext = {
