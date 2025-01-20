@@ -7,58 +7,43 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
 - [Intro](#Intro)
 - [Installation](#Installation)
 - [Usage](#Usage)
-    - [Providers](#Providers)
+    - [Creating resolvers](#Creating-resolvers)
         - [Transient](#Transient)
         - [Singleton](#Singleton)
         - [Scoped](#Scoped)
-    - [Resolution context](#Resolution-context)
+    - [Propagating a context](#Propagating-a-context)
     - [Mocking](#Mocking)
-    - [Scoping](#Scoping)
-    - [Bulk resolutions](#Bulk-resolutions)
-        - [List resolution](#List-resolution)
-        - [Map resolution](#Map-resolution)
+        - [Registering mocks](#Registering-mocks)
+        - [Resolving with mocks](#Resolving-with-mocks)
+    - [Scopes](#Scopes)
+        - [Creating a scope](#Scope)
+        - [Resolving with a scope](#Resolving-with-a-scope)
+    - [Resolving collections](#Resolving-collections)
+        - [Resolving a list](#Resolving-a-list)
+        - [Resolving a map](#Resolving-a-map)
 - [Reference](#Reference)
     - [Functions](#Functions)
-        - [transient](#transient)
-        - [singleton](#singleton)
-        - [scoped](#scoped)
-        - [createMockMap](#createMockMap)
-        - [createScope](#createScope)
+        - [`transient`](#transient)
+        - [`singleton`](#singleton)
+        - [`scoped`](#scoped)
+        - [`createMockMap`](#createMockMap)
+        - [`createScope`](#createScope)
+        - [`resolveList`](#resolveList)
+        - [`resolveMap`](#resolveMap)
     - [Types](#Types)
-        - [Provider](#Provider)
-        - [ResolutionContext](#ResolutionContext)
-        - [MockMap](#MockMap)
-        - [Scope](#Scope)
+        - [`ResolverFn`](#ResolverFn)
+        - [`Resolver`](#Resolver)
+        - [`ResolutionContext`](#ResolutionContext)
+        - [`MockMap`](#MockMap)
+        - [`Scope`](#Scope)
 
 # Intro
 
-## Prerequisites
-
 Before reading, it's highly recommended that you familiarize yourself with the concepts of inversion of control (IoC) and dependency injection (DI), as well as DI techniques.
 
-If you need a container to build your application, or you are satisfied with classic pure dependency injection, you should definitely consider other solutions, or not use a framework at all.
+If you need a container to build your application, or you are satisfied with pure dependency injection, you should definitely consider other solutions, or not use a framework at all.
 
 This library is an attempt to provide full-featured dependency injection **without containers**.
-
-## Problems and solutions
-
-### Lifetimes
-
-We can implement lifetime using static initializations together with factory functions that create instances on demand. However, this can introduce inconsistency into a composition code.
-
-This library solves this problem by allowing to resolve instances once using the same factory technique.
-
-### Scopes
-
-Often in your application you may need to resolve instances separately for different "scopes" of a program, be it a request, a transaction or a worker thread. This behavior can be achieved by correctly distributing transient resolutions, but at scale the complexity of this approach will only increase.
-
-This library solves this problem by introducing into factories (hereinafter referred to as providers) an ability to work with a map of providers to their instances, which serves as a scope.
-
-### Testing
-
-Testability is an important part of every application. IoC handles this very well, but to perform a unit test we still need to resolve modules. To ensure testing without side effects, developers often use mocking - replacing implementations with others with the same behavior. We can rebuild modules manually for each unit test or group of unit tests, but at scale this approach can introduce a lot of extra manual work without any significant benefit.
-
-This library solves this problem by allowing you to use factories that have been defined for a main application build. It's enough to create a map of mock providers to providers with the same interface, and pass it to a provider call to replace implementations in its dependencies.
 
 # Installation
 
@@ -74,200 +59,246 @@ npx jsr add @ensi/di
 # Usage
 
 #### Table of contents
-- [Providers](#Providers)
+- [Creating resolvers](#Creating-resolvers)
     - [Transient](#Transient)
     - [Singleton](#Singleton)
     - [Scoped](#Scoped)
-- [Resolution context](#Resolution-context)
+- [Propagating a context](#Propagating-a-context)
 - [Mocking](#Mocking)
-- [Scoping](#Scoping)
-- [Bulk resolutions](#Bulk-resolutions)
-    - [List resolution](#List-resolution)
-    - [Map resolution](#Map-resolution)
+    - [Registering mocks](#Registering-mocks)
+    - [Resolving with mocks](#Resolving-with-mocks)
+- [Scopes](#Scopes)
+    - [Creating a scope](#Scope)
+    - [Resolving with a scope](#Resolving-with-a-scope)
+- [Resolving collections](#Resolving-collections)
+    - [Resolving a list](#Resolving-a-list)
+    - [Resolving a map](#Resolving-a-map)
 
-## Providers
+## Creating resolvers
 
-A provider is a factory of instances with additional functionality. The library provides functions that create providers with behavior typical of singletons, transients, and scopes.
+The approach to dependency injection in this library is factories. It consists of a factory creating an instance of a certain type by calling other factories that resolve dependencies for it.
+
+To implement lifetimes, scope, and mocking mechanisms, the library provides functions that create factories with functionality specific to a particular lifetime, such factories are called **resolvers**. They all have some functionality in common, but first let's look at the functions that create them.
 
 ### Transient
 
-Transient providers are created using `transient` function:
+The `transient` function creates a basic resolver that does not contain any logic that controls a lifetime of a resolution. This means that this resolver will call a passed factory and return a new instance each time it is called.
 ```ts
-const getThing = transient(() => createThing())
+const getRandom = transient(Math.random)
 ```
-
-Transient providers are no different from regular factories except for additional logic required for scopes and mocks to work correctly. This logic is also present in other two functions, you can read about it [here](#Resolution-context).
+```ts
+getRandom() !== getRandom()
+```
 
 ### Singleton
 
-Singleton providers are created using `singleton` function:
+The `singleton` function creates a resolver that contains a logic specific to singletons. This means that a singleton resolver will only call a passed factory once, and will return a single instance created each time it is called.
 ```ts
-const getA = singleton(() => createA())
-const getB = transient((c) => createB(getA(c)))
+const getRandom = singleton(Math.random)
 ```
-
-In this case, calling `getA` will always result in a same instance, and a passed factory will only be called once:
 ```ts
-getA() === getA() == getB().A === getB().A
+getRandom() === getRandom()
 ```
-
-You may have noticed that the `getB` provider factory uses a certain `c` argument. This is a context that can optionally be passed when calling a provider, you can read about it [here](#Resolution-context).
 
 ### Scoped
 
-Scoped providers are created using `scoped` function:
+The `scoped` function creates a resolver that contains logic specific to scoped registrations, often supported by IoC containers. These resolvers operate on scope instances that are passed into a resolution context when called. They check whether their instance is in a scope, and depending on this, save a new instance or return an existing one within that scope. If a resolver is not passed a scope when called, it will behave as a singleton, simulating a global scope.
 ```ts
-const getThing = scoped(() => createThing())
+const getRandom = scoped(Math.random)
+```
+```ts
+getRandom() === getRandom()
+```
+```ts
+getRandom({ scope: myScope }) === getRandom({ scope: myScope })
+```
+```ts
+getRandom() !== getRandom({ scope: myScope })
 ```
 
-When calling this provider without passing a scope to a resolution context, it will act as a singleton, resulting in a same instance:
-```ts
-getThing() === getThing()
-```
+A detailed explanation of the scope mechanism and its use is described in [this](#Scopes) section.
 
-To get resolutions within a scope, we need to pass it to a provider call in a resolution context object:
-```ts
-const scope = createScope()
+## Propagating a context
 
-getThing({ scope }) === getThing({ scope })
-```
+Each resolver takes an optional resolution context. This is an object that can contain a scope and a mock map. Based on this context, resolvers determine how to resolve an instance.
 
-You can read more about scopes [here](#Scoping).
-
-## Resolution context
-
-Each provider can accept a resolution context object. This is an object with optional `scope` and `mocks` fields that defines how an instance will be resolved.
-
-In all provider factories that have dependencies, this context **must** be passed into all calls to other providers to ensure it is propagated up a call chain.
+In order for a resolution context to correctly influence a current resolution, it **must** be propagated up a resolver call chain so that each resolver is aware of a current context. Therefore, if a factory uses other resolvers, it **must** pass a resolution context it receives into **each** resolver call.
 
 #### Incorrect
 ```ts
-const getA = singleton(() => createA())
-const getB = scoped(() => createB(getA()))
-const getC = scoped(() => createC(getB()))
+const getDependency = transient(() => createDependency())
+const getEntity = transient(() =>
+    createEntity(getDependency())
+)
 ```
-
-In this case, a context will not propagate beyond `getC` and other providers will not know about a current scope and mocks, and `getB` will return an instance that is not related to any scopes.
-
 #### Correct
 ```ts
-const getA = singleton(() => createA())
-const getB = scoped((c) => createB(getA(c)))
-const getC = scoped((c) => createC(getB(c)))
+const getDependency = transient(() => createDependency())
+const getEntity = transient((c) =>
+    createEntity(getDependency(c)) // context is propagated
+)
 ```
-
-In this case, `getC` will propagate a context, and `getB` and `getA` will be aware of a current mocks and scopes, resolving instances correctly.
-
-More details on how provider behaves depending on a passed context can be found in sections about [mocking](#Mocking) and [scoping](#Scoping).
 
 ## Mocking
 
-To replace implementations inside factories, we can use a mock map. To create one, we can use `createMockMap` function:
+Mocking is a common mechanism in testing whereby some implementation being used is replaced with a replica to prevent side effects or reduce testing load.
+
+This library implements this mechanism by adding logic to each resolver responsible for replacing **itself** (not a resolution) when its own mock is present in a resolution context. A definition of mocks in a resolution context is done by passing a mock map to this resolution context.
+
+### Registering mocks
+
+A mock map is an immutable object similar to `Map` that implements an interface for registering and receiving mocks of some resolvers. To create one, you must use `createMockMap` function.
 ```ts
-const mockMap = createMockMap()
+const mocks = createMockMap()
 ```
 
-To register a mock, you need to `set` an entry with an original provider in a key and its mock in a value:
+To register a mock resolver, use `mock` method, passing an original resolver and its mock. It will create a new mock map with this registration.
 ```ts
-mockMap.set(getDatabase, getMockDatabase)
+const mocks = createMockMap()
+    .mock(getDatabase, getDatabaseMock)
+    .mock(getLogger, getLoggerMock)
+    // ...
 ```
 
-Once all mocks have been registered, this map can be passed to a provider call. If a provider finds a mock in a resolution context, it checks whether it is among the keys, and in that case returns a mock call instead of itself.
-
-#### Direct replacement
+If you need to partially replace an implementation, i.e. replace some fields in a resolution, use `mockPartially` method. Both original and mock resolver must return an object or a `Promise` of an object.
 ```ts
-const getA = transient(() => 1)
-const getB = transient((c) => getA(c) + 1)
-
-getB() === 2
-```
-```ts
-const getBee = transient((c) => getA(c) + "bee")
-const mocks = createMockMap().set(getB, getBee)
-
-getB({ mocks }) === "1bee"
+const getDatabaseMock = singleton(() => ({
+    execute: (q) => console.log("db: executing", q)
+}))
+const mocks = createMockMap()
+    .mockPartially(getDatabase, getDatabaseMock)
 ```
 
-#### Direct/transitive dependency replacement
-```ts
-const getA = transient(() => 1)
-const getB = transient((c) => getA(c) + 1)
-const getC = transient((c) => getB(c) + 1)
+### Resolving with mocks
 
-getC() === 3
-```
+To resolve an instance with mocks, you must pass a previously defined mock map to a resolution context when calling any resolver.
 ```ts
-const getSea = transient((c) => getB(c) + "sea")
-const mocks = createMockMap().set(getC, getSea)
-
-getC({ mocks }) === "2sea"
+resolver({ mocks: myMockMap })
 ```
 
-## Scoping
+If resolver's direct or transitive dependencies or the resolver itself have their mock registered in a mock map, they will replace themselves with this mock, depending on a type of a mock. This behavior is clearly demonstrated in examples below.
 
-In this library, a scope is a map of providers to their resolutions. To create one, you can use `createScope` function:
+#### Full mock
+```ts
+const getDependency = transitive(() => "dependency")
+const getEntity = transitive((c) => ({
+    dependency: getDependency(c)
+}))
+```
+```ts
+const getDependencyMock = transitive(() => "dependencyMock")
+
+const mocks = createMockMap()
+    .mock(getDependency, getDependencyMock
+```
+```ts
+getEntity({ mocks }) == {
+    dependency: "dependencyMock"
+}
+```
+
+#### Partial mock
+```ts
+const getDependency = transitive(() => ({
+    value: "dependency",
+    origin: "getDependency"
+}))
+const getEntity = transitive((c) => ({
+    dependency: getDependency(c)
+}))
+```
+```ts
+const getDependencyMock = transitive(() => ({
+    value: "dependencyMock"
+}))
+
+const mocks = createMockMap()
+    .mockPartially(getDependency, getDependencyMock
+```
+```ts
+getEntity({ mocks }) == {
+    dependency: {
+        value: "dependencyMock", // replaced
+        origin: "getDependency" // original value
+    }
+}
+```
+
+## Scopes
+
+Sometimes you need to create and save resolutions for different areas of your program, such as a request or a thread. Scopes solve this problem.
+
+IoC containers implement this by defining copies of a container in different parts of a program. Within this library, a scope is simply a map of resolvers to their resolutions. This map is used by scoped resolvers described earlier.
+
+### Creating a scope
+
+There are two ways to create a scope:
+- Create a map with the correct type manually.
+```ts
+const scope = new Map<Resolver<any>, any>()
+```
+- Use `createScope` function.
 ```ts
 const scope = createScope()
 ```
 
-It is passed to a scoped provider call or to a call of a provider that has the scoped provider among its transitive dependencies.
-- If a scoped provider finds a scope in a resolution context, it first tries to get its own resolution from it. If there is none, it creates a new resolution and places it in the scope below itself.
-- If a scope is not passed to a resolution context when calling a scoped provider, the provider will always result in a same instance, and a passed factory will only be called once, i.e. it will behave as a singleton provider.
-
-#### Direct scoped provider call
+It is important to note that a scope must be created **once** during an entire lifecycle of a program.
 ```ts
-const getThing = scoped(() => createThing())
-```
-```ts
-const thing1 = getThing()
-const thing2 = getThing()
+const requestScope = createScope()
 
-thing1 === thing2
-```
-```ts
-const thing1 = getThing({ scope })
-const thing2 = getThing({ scope })
-const thingFallback = getThing()
-
-thing1 === thing2 !== thingFallback
+app.use(() => {
+    // use the scope here
+})
 ```
 
-#### Scoped provider as direct/transitive dependency
+### Resolving with a scope
+
+To get a scoped resolver resolution within a scope, a scoped resolver, or a resolver that has a scoped resolver in its direct or transitive dependencies, must be called with a scope passed to a resolution context.
+
+#### Direct resolution
 ```ts
-const getScopedDependency = scoped(() => ...)
-const getThing = transitive((c) =>
-    createThing(getScopedDependency(c))
-)
+const getEntity = scoped(() => createEntity())
 ```
 ```ts
-const thing1 = getThing()
-const thing2 = getThing()
+const scope = createScope()
 
-thing1.scopedDependency === thing2.scopedDependency
+const scopeEntity = getEntity({ scope })
 ```
 ```ts
-const thing1 = getThing({ scope })
-const thing2 = getThing({ scope })
-const thingWithFallback = getThing()
-
-thing1.scopedDependency === thing2.scopedDependency !== thingWithFallback
+scope.get(getEntity) === scopeEntity
 ```
 
-## Bulk resolutions
+#### Indirect resolution
+```ts
+const getDependency = scoped(() => createDependency())
+const getEntity = transient((c) => ({
+    dependency: getDependency(c)
+}))
+```
+```ts
+const scope = createScope()
 
-It often happens that you need to resolve instances of a large number of entities, in our case providers, with a same context. Fortunately, the library provides functions for this.
+const entity = getEntity({ scope })
+```
+```ts
+scope.get(getDependency) === entity.dependency
+```
 
-### List resolution
+## Resolving collections
 
-To resolve instances of a list of providers, you can use `resolveList` function, which takes a list of providers and a common resolution context. If at least one provider in the passed list of providers returns a `Promise`, the function will return a `Promise` of a list of **awaited** resolutions.
+Often you may need to get resolutions of a large number of resolvers within a single context at once. Doing this manually is inefficient, so the library provides functions specifically for this.
 
-#### Only sync providers
+### Resolving a list
+
+If you need to get a list of resolutions of different resolvers, you can use `resolveList` function.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
 const getC = scoped(() => createC())
-
+```
+```ts
 const scope = createScope()
+
 const resolutions = resolveList(
     [getA, getB, getC],
     { scope }
@@ -275,19 +306,21 @@ const resolutions = resolveList(
 ```
 ```ts
 resolutions == [
-    getA({ scope }),
-    getB({ scope }),
+    getA({ scope })
+    getB({ scope })
     getC({ scope })
 ]
 ```
 
-#### Some provider is async
+If one of passed resolvers returns a promise, the function will return a `Promise` of a list of awaited resolutions.
 ```ts
 const getA = scoped(() => createA())
-const getB = scoped(async () => await createB())
+const getB = scoped(async () => createB())
 const getC = scoped(() => createC())
-
+```
+```ts
 const scope = createScope()
+
 const resolutions = await resolveList(
     [getA, getB, getC],
     { scope }
@@ -295,23 +328,23 @@ const resolutions = await resolveList(
 ```
 ```ts
 resolutions == [
-    getA({ scope }),
-    await getB({ scope }),
+    getA({ scope })
+    await getB({ scope })
     getC({ scope })
 ]
 ```
 
-### Map resolution
+### Resolving a map
 
-To resolve instances of a provider map, or an object with string keys and providers in a values, you can use `resolveMap` function, which takes a provider map and a common resolution context. If at least one provider in the values of the passed provider map returns a `Promise`, the function will return a `Promise` of a map of **awaited** resolutions.
-
-#### Only sync providers
+If you need to get a map of resolutions of different resolvers, you can use `resolveMap` function.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
 const getC = scoped(() => createC())
-
+```
+```ts
 const scope = createScope()
+
 const resolutions = resolveMap(
     { a: getA, b: getB, c: getC },
     { scope }
@@ -319,28 +352,30 @@ const resolutions = resolveMap(
 ```
 ```ts
 resolutions == {
-    a: getA({ scope }),
-    b: getB({ scope }),
+    a: getA({ scope })
+    b: getB({ scope })
     c: getC({ scope })
 }
 ```
 
-#### Some provider is async
+If one of passed resolvers returns `Promise`, the function will return a `Promise` of a map of awaited resolutions.
 ```ts
 const getA = scoped(() => createA())
-const getB = scoped(async () => await createB())
+const getB = scoped(async () => createB())
 const getC = scoped(() => createC())
-
+```
+```ts
 const scope = createScope()
-const resolutions = await resolveMap(
+
+const resolutions = await resolveList(
     { a: getA, b: getB, c: getC },
     { scope }
 )
 ```
 ```ts
 resolutions == {
-    a: getA({ scope }),
-    b: await getB({ scope }),
+    a: getA({ scope })
+    b: await getB({ scope })
     c: getC({ scope })
 }
 ```
@@ -349,66 +384,69 @@ resolutions == {
 
 #### Table of contents
 - [Functions](#Functions)
-    - [transient](#transient)
-    - [singleton](#singleton)
-    - [scoped](#scoped)
-    - [createMockMap](#createMockMap)
-    - [createScope](#createScope)
+    - [`transient`](#transient)
+    - [`singleton`](#singleton)
+    - [`scoped`](#scoped)
+    - [`createMockMap`](#createMockMap)
+    - [`createScope`](#createScope)
+    - [`resolveList`](#resolveList)
+    - [`resolveMap`](#resolveMap)
 - [Types](#Types)
-    - [Provider](#Provider)
-    - [ResolutionContext](#ResolutionContext)
-    - [MockMap](#MockMap)
-    - [Scope](#Scope)
+    - [`ResolverFn`](#ResolverFn)
+    - [`Resolver`](#Resolver)
+    - [`ResolutionContext`](#ResolutionContext)
+    - [`MockMap`](#MockMap)
+    - [`Scope`](#Scope)
 
 ## Functions
 
 ### `transient`
 ```ts
-function transient<T>(resolver: Resolver<T>): Provider<T>
+function transient<T>(fn: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that returns a value of a particular type with a resolution context being passed to it.
+- `resolver`: A function that takes a resolution context and returns a value of some type.
 
-Creates a transient provider that will resolve a new instance on each call.
+Creates a resolver that creates a new resolution on each call.
 
 #### Example
 ```ts
-const getThing = transient(() => createThing())
-getThing() !== getThing()
+const getEntity = transient(() => createEntity())
+getEntity() !== getEntity()
 ```
 
 ### `singleton`
 ```ts
-function singleton<T>(resolver: Resolver<T>): Provider<T>
+function singleton<T>(resolver: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that returns a value of a particular type with a resolution context being passed to it.
+- `resolver`: A function that takes a resolution context and returns a value of some type.
 
-Creates a singleton provider that will resolve an instance once and return it on every call.
+Creates a resolver that creates a resolution once and return it on each call.
 
 #### Example
 ```ts
-const getThing = singleton(() => createThing())
-getThing() === getThing()
+const getEntity = singleton(() => createEntity())
+getEntity() === getEntity()
 ```
 
 ### `scoped`
 ```ts
-function scoped<T>(resolver: Resolver<T>): Provider<T>
+function scoped<T>(resolver: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that returns a value of a particular type with a resolution context being passed to it.
+- `resolver`: A function that takes a resolution context and returns a value of some type.
 
-Creates a scoped provider that will take its resolution from a passed scope or create a new one and save it if there is none. If no scope is passed, it will act as a singleton
+Creates a resolver that takes its resolution from a scope or create a new one and save it if there is none. If no scope was passed in a resolution context, it will act as a singleton.
 
 #### Example 1
 ```ts
-const getThing = scoped(() => createThing())
-getThing() === getThing()
+const getEntity = scoped(() => createEntity())
+getEntity() === getEntity()
 ```
 
 #### Example 2
 ```ts
-const getThing = scoped(() => createThing())
+const getEntity = scoped(() => createEntity())
 const scope = createScope()
-getThing({ scope }) === getThing({ scope }) !== getThing()
+getEntity({ scope }) === getEntity({ scope }) !== getEntity()
 ```
 
 ### `createMockMap`
@@ -416,14 +454,18 @@ getThing({ scope }) === getThing({ scope }) !== getThing()
 function createMockMap(): MockMap
 ```
 
-Creates a `Map` of providers to providers of the samep type which is then passed to a provider call in a resolution context object in order to replace providers with their mocks.
+Creates a mock map, an immutable map that registers and provides mocks. Is passed in a resolution context and used by resolvers to replace or partially replace themselves with a mock if one is defined.
 
 #### Example
 ```ts
 const mocks = createMockMap()
-    .set(getConfig, getTestConfig)
+    .mock(getDependency, getDependencyMock)
+    .mockPartially(
+        getOtherDependency,
+        transient(() => ({ someField: "mock" }))
+    )
 
-getThing({ mocks })
+const entityWithMocks = getEntity({ mocks })
 ```
 
 ### `createScope`
@@ -431,7 +473,7 @@ getThing({ mocks })
 function createScope(): Scope
 ```
 
-Creates a `Map` of providers to their instances that is then passed to a provider call in a resolution context object to resolve instances of scoped providers within it.
+Creates a `Map` of resolvers to their resolutions. Is passed in a resolution context and used by scoped resolvers to retrieve or save resolution within it.
 
 #### Example
 ```ts
@@ -439,26 +481,25 @@ const requestScope = createScope()
 
 app.use(() => {
     const db = getDb({ scope: requestScope })
-    // ...
 })
 ```
 
 ### `resolveList`
 ```ts
-function resolveList<const Providers extends ProviderList>(
-    providers: Providers,
+function resolveList<const Resolvers extends ResolverList>(
+    resolvers: Resolvers,
     context?: ResolutionContext
 ): AwaitValuesInCollection<
-    InferProviderCollectionResolutions<Provider>
+    InferResolverCollectionResolutions<Resolvers>
 >
 ```
-- `providers`: A list of providers.
+- `resolvers`: A list of resolvers.
 - `context?`: A resolution context.
 
-Calls every provider in a list with a provided resolution context and returns a list of resolutions. Returns a `Promise` of a list of awaited resolutions if there's at least one `Promise` in the resolution.
+Calls every resolver in a list with a provided resolution context and returns a list of resolutions. Returns a `Promise` of a list of awaited resolutions if there's at least one `Promise` in the resolutions.
 
 #### Example 1
-Only sync providers:
+Only sync resolvers:
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
@@ -479,7 +520,7 @@ resolutions == [
 ```
 
 #### Example 2
-Some provider is async:
+Some resolver is async:
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(async () => await createB())
@@ -501,20 +542,20 @@ resolutions == [
 
 ### `resolveMap`
 ```ts
-function resolveMap<const Providers extends ProviderRecord>(
-    providers: Providers,
+function resolveMap<const Resolvers extends ResolverRecord>(
+    resolvers: Resolvers,
     context?: ResolutionContext
 ): AwaitValuesInCollection<
-    InferProviderCollectionResolutions<Provider>
+    InferResolverCollectionResolutions<Resolvers>
 >
 ```
-- `providers`: A map of providers.
+- `resolvers`: A map of resolvers.
 - `context?`: A resolution context.
 
-Calls every provider in a map with a provided resolution context and returns a map with identical keys but with resolutions in values instead. Returns a `Promise` of a map of awaited resolutions if there's at least one `Promise` in the resolutions.
+Calls every resolver in a map with a provided resolution context and returns a map with identical keys but with resolutions in values instead. Returns a `Promise` of a map awaited resolutions if there's at least one `Promise` in the resolutions.
 
 #### Example 1
-Only sync providers:
+Only sync resolvers:
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
@@ -535,7 +576,7 @@ resolutions == {
 ```
 
 #### Example 2
-Some provider is async:
+Some resolver is async:
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(async () => await createB())
@@ -557,21 +598,19 @@ resolutions == {
 
 ## Types
 
+### `ResolverFn`
+```ts
+type ResolverFn<T> = (context?: ResolutionContext) => T
+```
+
+A function that takes a resolution context and returns a value of some type.
+
 ### `Resolver`
 ```ts
 type Resolver<T> = (context?: ResolutionContext) => T
 ```
 
-A function that returns a value of a particular type with a resolution context being passed to it.
-
-### `Provider`
-```ts
-type Provider<T> = Resolver<T> & {
-    __brand: "provider"
-}
-```
-
-A function that resolves an instance or a `Promise` of a particular type based on a resolution context passed to it.
+A function that returns a value of some type based on a resolution context.
 
 ### `ResolutionContext`
 ```ts
@@ -581,29 +620,36 @@ type ResolutionContext = {
 }
 ```
 
-A context used by providers to resolve instances based on current scope and mocks.
+A context used by resolvers that defines the behaviour of the resolver with the passed mocks and scope.
 
 ### `MockMap`
 ```ts
-type MockMap = Omit<Map<Resolver<any>, Resolver<any>>, "set" | "get"> & {
-    set<T>(provider: Resolver<T>, mock: Resolver<T>): MockMap;
-    get<T>(provider: Resolver<T>): Resolver<T> | undefined;
+type MockMap = {
+    mock<T>(original: Resolver<T>, mock: Resolver<T>): MockMap;
+    mockPartially<T extends object>(
+        original: Resolver<T>,
+        mock: Resolver<PromiseAwarePartial<T>>,
+    ): MockMap;
+    get<T>(original: Resolver<T>): Mock<T> | undefined;
 };
 ```
-- `set`: Sets a mock for a provider.
-    - `provider`: The original provider.
-    - `mock`: The mock provider.
-- `get`: Retrieves a mock of a provider. Returns undefined if there's none.
-    - `provider`: The provider.
+- `mock`: Registers a mock for a resolver, creating a new `MockMap` with this registration.
+    - `original`: The original resolver.
+    - `mock`: The mock resolver.
+- `mockPartially`: Registers a partial mock for a resolver, creating a new `MockMap` with this registration. In this case, the mock resolver's resoluton object will be merged with the original resolver's resolution object, overwriting certain fields.
+    - `original`: The original resolver.
+    - `mock`: The mock resolver.
+- `get`: Returns a mock of a resolver or `undefined` if one is not registered.
+    - `original`: The original resolver.
 
-A `Map` of providers to providers of the same type which is then passed to a provider call in a resolution context object in order to replace providers with their mocks.
+Immutable map that registers and provides mocks. Is passed in a resolution context and used by resolvers to replace or partially replace themselves with a mock if one is defined.
 
 ### `Scope`
 ```ts
 type Scope = Map<Resolver<any>, any>
 ```
 
-A `Map` of providers to their instances that is then passed to a provider call in a resolution context object to resolve instances of scoped providers within it.
+A `Map` of resolvers to their resolutions. Is passed in a resolution context and used by scoped resolvers to retrieve or save resolution within it.
 
 # Contribution
 

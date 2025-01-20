@@ -1,16 +1,16 @@
-import { Resolver } from "./provider";
+import { Resolver } from "./resolver";
 
 /**
- * A `Map` of providers to their instances
- * that is then passed to a provider call in a resolution context object
- * to resolve instances of scoped providers within it.
+ * A `Map` of resolvers to their resolutions.
+ * Is passed in a resolution context and used by scoped resolvers
+ * to retrieve or save resolution within it.
  */
 export type Scope = Map<Resolver<any>, any>;
 
 /**
- * Creates a `Map` of providers to their instances
- * that is then passed to a provider call in a resolution context object
- * to resolve instances of scoped providers within it.
+ * Creates a `Map` of providers to their instances.
+ * Is passed in a resolution context and used by scoped resolvers
+ * to retrieve or save resolution within it.
  *
  * @example
  * ```ts
@@ -18,10 +18,9 @@ export type Scope = Map<Resolver<any>, any>;
  *
  * app.use(() => {
  *     const db = getDb({ scope: requestScope })
- *     // ...
  * })
  * ```
  *
- * @returns The map instance.
+ * @returns The map.
  */
 export const createScope = (): Scope => new Map();
