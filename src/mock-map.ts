@@ -100,4 +100,4 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
  *
  * @returns The mock map.
  */
-export const createMockMap = () => createMockMapWithEntries();
+export const createMockMap = (): MockMap => createMockMapWithEntries();
