@@ -8,9 +8,9 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
 - [Installation](#Installation)
 - [Usage](#Usage)
     - [Creating resolvers](#Creating-resolvers)
-        - [Transient resolver](#Transient-resolver)
-        - [Singleton resolver](#Singleton-resolver)
-        - [Scoped resolver](#Scoped-resolver)
+        - [Transient](#Transient)
+        - [Singleton](#Singleton)
+        - [Scoped](#Scoped)
     - [Propagating a context](#Propagating-a-context)
     - [Mocking](#Mocking)
         - [Registering mocks](#Registering-mocks)
@@ -23,19 +23,19 @@ This library implements lifetimes, scopes and mocking for pure dependency inject
         - [Resolving a map](#Resolving-a-map)
 - [Reference](#Reference)
     - [Functions](#Functions)
-        - [transient](#transient)
-        - [singleton](#singleton)
-        - [scoped](#scoped)
-        - [createMockMap](#createMockMap)
-        - [createScope](#createScope)
-        - [resolveList](#resolveList)
-        - [resolveMap](#resolveMap)
+        - [`transient`](#transient)
+        - [`singleton`](#singleton)
+        - [`scoped`](#scoped)
+        - [`createMockMap`](#createMockMap)
+        - [`createScope`](#createScope)
+        - [`resolveList`](#resolveList)
+        - [`resolveMap`](#resolveMap)
     - [Types](#Types)
-        - [ResolverFn](#ResolverFn)
-        - [Resolver](#Resolver)
-        - [ResolutionContext](#ResolutionContext)
-        - [MockMap](#MockMap)
-        - [Scope](#Scope)
+        - [`ResolverFn`](#ResolverFn)
+        - [`Resolver`](#Resolver)
+        - [`ResolutionContext`](#ResolutionContext)
+        - [`MockMap`](#MockMap)
+        - [`Scope`](#Scope)
 
 # Intro
 
@@ -60,9 +60,9 @@ npx jsr add @ensi/di
 
 #### Table of contents
 - [Creating resolvers](#Creating-resolvers)
-    - [Transient resolver](#Transient-resolver)
-    - [Singleton resolver](#Singleton-resolver)
-    - [Scoped resolver](#Scoped-resolver)
+    - [Transient](#Transient)
+    - [Singleton](#Singleton)
+    - [Scoped](#Scoped)
 - [Propagating a context](#Propagating-a-context)
 - [Mocking](#Mocking)
     - [Registering mocks](#Registering-mocks)
@@ -80,7 +80,7 @@ The approach to dependency injection in this library is factories. It consists o
 
 To implement lifetimes, scope, and mocking mechanisms, the library provides functions that create factories with functionality specific to a particular lifetime, such factories are called **resolvers**. They all have some functionality in common, but first let's look at the functions that create them.
 
-### Transient resolver
+### Transient
 
 The `transient` function creates a basic resolver that does not contain any logic that controls a lifetime of a resolution. This means that this resolver will call a passed factory and return a new instance each time it is called.
 ```ts
@@ -90,7 +90,7 @@ const getRandom = transient(Math.random)
 getRandom() !== getRandom()
 ```
 
-### Singleton resolver
+### Singleton
 
 The `singleton` function creates a resolver that contains a logic specific to singletons. This means that a singleton resolver will only call a passed factory once, and will return a single instance created each time it is called.
 ```ts
@@ -100,7 +100,7 @@ const getRandom = singleton(Math.random)
 getRandom() === getRandom()
 ```
 
-### Scoped resolver
+### Scoped
 
 The `scoped` function creates a resolver that contains logic specific to scoped registrations, often supported by IoC containers. These resolvers operate on scope instances that are passed into a resolution context when called. They check whether their instance is in a scope, and depending on this, save a new instance or return an existing one within that scope. If a resolver is not passed a scope when called, it will behave as a singleton, simulating a global scope.
 ```ts
@@ -384,19 +384,19 @@ resolutions == {
 
 #### Table of contents
 - [Functions](#Functions)
-    - [transient](#transient)
-    - [singleton](#singleton)
-    - [scoped](#scoped)
-    - [createMockMap](#createMockMap)
-    - [createScope](#createScope)
-    - [resolveList](#resolveList)
-    - [resolveMap](#resolveMap)
+    - [`transient`](#transient)
+    - [`singleton`](#singleton)
+    - [`scoped`](#scoped)
+    - [`createMockMap`](#createMockMap)
+    - [`createScope`](#createScope)
+    - [`resolveList`](#resolveList)
+    - [`resolveMap`](#resolveMap)
 - [Types](#Types)
-    - [ResolverFn](#ResolverFn)
-    - [Resolver](#Resolver)
-    - [ResolutionContext](#ResolutionContext)
-    - [MockMap](#MockMap)
-    - [Scope](#Scope)
+    - [`ResolverFn`](#ResolverFn)
+    - [`Resolver`](#Resolver)
+    - [`ResolutionContext`](#ResolutionContext)
+    - [`MockMap`](#MockMap)
+    - [`Scope`](#Scope)
 
 ## Functions
 
