@@ -78,11 +78,11 @@ npx jsr add @ensi/di
 
 The approach to dependency injection in this library is factories. It consists of a factory creating an instance of a certain type by calling other factories that resolve dependencies for it.
 
-To implement the lifetime, scope, and mocking mechanisms, the library provides functions that create factories with functionality specific to a particular lifetime, such factories are called **resolvers**. They all have some functionality in common, but first let's look at the functions that create them.
+To implement lifetimes, scope, and mocking mechanisms, the library provides functions that create factories with functionality specific to a particular lifetime, such factories are called **resolvers**. They all have some functionality in common, but first let's look at the functions that create them.
 
 ### Transient resolver
 
-The `transient` function creates a basic resolver that does not contain any logic that controls the lifetime of the resolution. This means that this resolver will call the passed factory and return a new instance each time it is called.
+The `transient` function creates a basic resolver that does not contain any logic that controls a lifetime of a resolution. This means that this resolver will call a passed factory and return a new instance each time it is called.
 ```ts
 const getRandom = transient(Math.random)
 ```
@@ -92,7 +92,7 @@ getRandom() !== getRandom()
 
 ### Singleton resolver
 
-The `singleton` function creates a resolver that contains the logic specific to singletons. This means that the singleton will only call the passed factory once, and will return the single instance created each time it is called.
+The `singleton` function creates a resolver that contains a logic specific to singletons. This means that a singleton resolver will only call a passed factory once, and will return a single instance created each time it is called.
 ```ts
 const getRandom = singleton(Math.random)
 ```
@@ -102,7 +102,7 @@ getRandom() === getRandom()
 
 ### Scoped resolver
 
-The `scoped` function creates a resolver that contains logic specific to scoped registrations, often supported by IoC containers. These resolvers operate on scope instances that are passed into the resolution context when called. They check whether their instance is in the scope, and depending on this, save a new instance or return an existing one within that scope. If a resolver is not passed a scope when called, it will behave as a singleton, simulating a global scope.
+The `scoped` function creates a resolver that contains logic specific to scoped registrations, often supported by IoC containers. These resolvers operate on scope instances that are passed into a resolution context when called. They check whether their instance is in a scope, and depending on this, save a new instance or return an existing one within that scope. If a resolver is not passed a scope when called, it will behave as a singleton, simulating a global scope.
 ```ts
 const getRandom = scoped(Math.random)
 ```
@@ -120,9 +120,9 @@ A detailed explanation of the scope mechanism and its use is described in [this]
 
 ## Propagating a context
 
-Each resolver takes an optional resolution context. This is an object that can contain a scope and a mock map. Based on this context, resolvers determine how to resolve the instance.
+Each resolver takes an optional resolution context. This is an object that can contain a scope and a mock map. Based on this context, resolvers determine how to resolve an instance.
 
-In order for a resolution context to correctly influence the current resolution, it **must** be propagated up the resolver call chain so that each resolver is aware of the current context. Therefore, if the factory uses other resolvers, it **must** pass the resolution context it receives into **each** resolver call.
+In order for a resolution context to correctly influence a current resolution, it **must** be propagated up a resolver call chain so that each resolver is aware of a current context. Therefore, if a factory uses other resolvers, it **must** pass a resolution context it receives into **each** resolver call.
 
 #### Incorrect
 ```ts
@@ -143,11 +143,11 @@ const getEntity = transient((c) =>
 
 Mocking is a common mechanism in testing whereby some implementation being used is replaced with a replica to prevent side effects or reduce testing load.
 
-This library implements this mechanism by adding logic to each resolver responsible for replacing **itself** (not the resolution) when its own mock is present in the resolution context. The definition of mocks in the resolution context is done by passing a mock map to this resolution context.
+This library implements this mechanism by adding logic to each resolver responsible for replacing **itself** (not a resolution) when its own mock is present in a resolution context. A definition of mocks in a resolution context is done by passing a mock map to this resolution context.
 
 ### Registering mocks
 
-A mock map is an immutable object similar to `Map` that implements the interface for registering and receiving mocks of some resolvers. To create one, you must use the `createMockMap` function.
+A mock map is an immutable object similar to `Map` that implements an interface for registering and receiving mocks of some resolvers. To create one, you must use `createMockMap` function.
 ```ts
 const mocks = createMockMap()
 ```
@@ -160,7 +160,7 @@ const mocks = createMockMap()
     // ...
 ```
 
-If you need to partially replace the implementation, i.e. replace some fields in the resolution, use `mockPartially` method. Both original and mock resolver must return an object or a `Promise` of the object.
+If you need to partially replace an implementation, i.e. replace some fields in a resolution, use `mockPartially` method. Both original and mock resolver must return an object or a `Promise` of an object.
 ```ts
 const getDatabaseMock = singleton(() => ({
     execute: (q) => console.log("db: executing", q)
@@ -171,12 +171,12 @@ const mocks = createMockMap()
 
 ### Resolving with mocks
 
-To resolve an instance with mocks, you must pass a previously defined mock map to the resolution context when calling any resolver.
+To resolve an instance with mocks, you must pass a previously defined mock map to a resolution context when calling any resolver.
 ```ts
 resolver({ mocks: myMockMap })
 ```
 
-If the resolver's direct or transitive dependencies or the resolver itself have their mock registered in the mock map, they will replace themselves with this mock, depending on the type of the mock. This behavior is clearly demonstrated in the examples below.
+If resolver's direct or transitive dependencies or the resolver itself have their mock registered in a mock map, they will replace themselves with this mock, depending on a type of a mock. This behavior is clearly demonstrated in examples below.
 
 #### Full mock
 ```ts
@@ -228,7 +228,7 @@ getEntity({ mocks }) == {
 
 Sometimes you need to create and save resolutions for different areas of your program, such as a request or a thread. Scopes solve this problem.
 
-IoC containers implement this by defining copies of the container in different parts of the program. Within this library, a scope is simply a map of resolvers to their resolutions. This map is used by the scoped resolvers described earlier.
+IoC containers implement this by defining copies of a container in different parts of a program. Within this library, a scope is simply a map of resolvers to their resolutions. This map is used by scoped resolvers described earlier.
 
 ### Creating a scope
 
@@ -237,12 +237,12 @@ There are two ways to create a scope:
 ```ts
 const scope = new Map<Resolver<any>, any>()
 ```
-- Use the `createScope` function.
+- Use `createScope` function.
 ```ts
 const scope = createScope()
 ```
 
-It is important to note that the scope must be created **once** during an entire lifecycle of a program.
+It is important to note that a scope must be created **once** during an entire lifecycle of a program.
 ```ts
 const requestScope = createScope()
 
@@ -253,7 +253,7 @@ app.use(() => {
 
 ### Resolving with a scope
 
-To get a scoped resolver resolution within a scope, the scoped resolver, or a resolver that has a scoped resolver in its direct or transitive dependencies, must be called with the scope passed to the resolution context.
+To get a scoped resolver resolution within a scope, a scoped resolver, or a resolver that has a scoped resolver in its direct or transitive dependencies, must be called with a scope passed to a resolution context.
 
 #### Direct resolution
 ```ts
@@ -290,7 +290,7 @@ Often you may need to get resolutions of a large number of resolvers within a si
 
 ### Resolving a list
 
-If you need to get a list of resolutions of different resolvers, you can use the `resolveList` function.
+If you need to get a list of resolutions of different resolvers, you can use `resolveList` function.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
@@ -312,7 +312,7 @@ resolutions == [
 ]
 ```
 
-If one of the passed resolvers returns a promise, the function will return a `Promise` of a list of awaited resolutions.
+If one of passed resolvers returns a promise, the function will return a `Promise` of a list of awaited resolutions.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(async () => createB())
@@ -336,7 +336,7 @@ resolutions == [
 
 ### Resolving a map
 
-If you need to get a map of the resolutions of different resolvers, you can use the `resolveMap` function.
+If you need to get a map of resolutions of different resolvers, you can use `resolveMap` function.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(() => createB())
@@ -358,7 +358,7 @@ resolutions == {
 }
 ```
 
-If one of the passed resolvers returns `Promise`, the function will return a `Promise` of a map of awaited resolutions.
+If one of passed resolvers returns `Promise`, the function will return a `Promise` of a map of awaited resolutions.
 ```ts
 const getA = scoped(() => createA())
 const getB = scoped(async () => createB())
