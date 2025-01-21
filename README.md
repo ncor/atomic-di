@@ -241,7 +241,6 @@ const scope = createScope()
 ```ts
 const scope = new Map<Resolver<any>, any>()
 ```
-```
 
 ### Resolving with a scope
 
