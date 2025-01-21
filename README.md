@@ -233,22 +233,14 @@ IoC containers implement this by defining copies of a container in different par
 ### Creating a scope
 
 There are two ways to create a scope:
-- Create a map with the correct type manually.
-```ts
-const scope = new Map<Resolver<any>, any>()
-```
-- Use `createScope` function.
+- By calling `createScope` function.
 ```ts
 const scope = createScope()
 ```
-
-It is important to note that a scope must be created **once** during an entire lifecycle of a program.
+- By creating a `Map` with the correct type manually.
 ```ts
-const requestScope = createScope()
-
-app.use(() => {
-    // use the scope here
-})
+const scope = new Map<Resolver<any>, any>()
+```
 ```
 
 ### Resolving with a scope
