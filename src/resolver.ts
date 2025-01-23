@@ -26,7 +26,7 @@ export type ResolutionContext = {
  * Makes the resolver function capable of replacing itself
  * with a mock if one is defined in the resolution context.
  */
-const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
+function mockable<T>(fn: ResolverFn<T>): ResolverFn<T> {
     const instance = (context?: ResolutionContext) => {
         const mock = context?.mocks?.get(instance);
         if (!mock) return fn(context);
@@ -62,7 +62,9 @@ const mockable = <T>(fn: ResolverFn<T>): ResolverFn<T> => {
  *
  * @returns The transient resolver.
  */
-export const transient = <T>(fn: ResolverFn<T>): Resolver<T> => mockable(fn);
+export function transient<T>(fn: ResolverFn<T>): Resolver<T> {
+    return mockable(fn);
+}
 
 /**
  * Creates a resolver that creates
@@ -80,7 +82,7 @@ export const transient = <T>(fn: ResolverFn<T>): Resolver<T> => mockable(fn);
  *
  * @returns The singleton resolver.
  */
-export const singleton = <T>(fn: ResolverFn<T>): Resolver<T> => {
+export function singleton<T>(fn: ResolverFn<T>): Resolver<T> {
     let resolved = false;
     let resolution: T | undefined;
 
@@ -94,7 +96,7 @@ export const singleton = <T>(fn: ResolverFn<T>): Resolver<T> => {
     });
 
     return instance;
-};
+}
 
 /**
  * Creates a resolver that takes its resolution
@@ -121,7 +123,7 @@ export const singleton = <T>(fn: ResolverFn<T>): Resolver<T> => {
  *
  * @returns The scoped resolver.
  */
-export const scoped = <T>(fn: ResolverFn<T>): Resolver<T> => {
+export function scoped<T>(fn: ResolverFn<T>): Resolver<T> {
     const singletonFallback = singleton(fn);
 
     const instance = mockable((context) => {
@@ -137,4 +139,4 @@ export const scoped = <T>(fn: ResolverFn<T>): Resolver<T> => {
     });
 
     return instance;
-};
+}

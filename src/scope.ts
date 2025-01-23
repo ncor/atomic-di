@@ -23,4 +23,6 @@ export type Scope = Map<Resolver<any>, any>;
  *
  * @returns The map.
  */
-export const createScope = (): Scope => new Map();
+export function createScope(): Scope {
+    return new Map();
+}

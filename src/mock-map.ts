@@ -55,7 +55,7 @@ export type MockMap = {
 /**
  * Internal implementation that accepts entries.
  */
-const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
+function createMockMapWithEntries(entries: MocksEntries = []): MockMap {
     const set = (key: Resolver<any>, value: Mock<any>) =>
         createMockMapWithEntries([
             ...entries.filter((entry) => entry[0] !== key),
@@ -79,7 +79,7 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
             return entries.find((entry) => entry[0] === original)?.[1] as any;
         },
     };
-};
+}
 
 /**
  * Creates a mock map, an immutable map that registers and provides mocks.
@@ -100,4 +100,6 @@ const createMockMapWithEntries = (entries: MocksEntries = []): MockMap => {
  *
  * @returns The mock map.
  */
-export const createMockMap = (): MockMap => createMockMapWithEntries();
+export function createMockMap(): MockMap {
+    return createMockMapWithEntries();
+}

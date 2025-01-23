@@ -71,10 +71,10 @@ type AwaitValuesInCollection<T extends any[] | Record<any, any>> =
  *
  * @returns The list of resolutions.
  */
-export const resolveList = <const Resolvers extends ResolverList>(
+export function resolveList<const Resolvers extends ResolverList>(
     resolvers: Resolvers,
     context?: ResolutionContext,
-): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> => {
+): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> {
     const resolutions = resolvers.map((resolver) => resolver(context));
 
     const hasPromises = resolutions.some(
@@ -135,10 +135,10 @@ export const resolveList = <const Resolvers extends ResolverList>(
  *
  * @returns The map of resolutions.
  */
-export const resolveMap = <const Resolvers extends ResolverRecord>(
+export function resolveMap<const Resolvers extends ResolverRecord>(
     resolvers: Resolvers,
     context?: ResolutionContext,
-): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> => {
+): AwaitValuesInCollection<InferResolverCollectionResolutions<Resolvers>> {
     const resolutionMapEntries = Object.entries(resolvers).map(
         ([key, resolver]) => [key, resolver(context)],
     );
