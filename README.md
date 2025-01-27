@@ -297,8 +297,8 @@ const resolutions = resolveList(
 ```
 ```ts
 resolutions == [
-    getA({ scope })
-    getB({ scope })
+    getA({ scope }),
+    getB({ scope }),
     getC({ scope })
 ]
 ```
@@ -319,8 +319,8 @@ const resolutions = await resolveList(
 ```
 ```ts
 resolutions == [
-    getA({ scope })
-    await getB({ scope })
+    getA({ scope }),
+    await getB({ scope }),
     getC({ scope })
 ]
 ```
@@ -343,8 +343,8 @@ const resolutions = resolveMap(
 ```
 ```ts
 resolutions == {
-    a: getA({ scope })
-    b: getB({ scope })
+    a: getA({ scope }),
+    b: getB({ scope }),
     c: getC({ scope })
 }
 ```
@@ -365,8 +365,8 @@ const resolutions = await resolveList(
 ```
 ```ts
 resolutions == {
-    a: getA({ scope })
-    b: await getB({ scope })
+    a: getA({ scope }),
+    b: await getB({ scope }),
     c: getC({ scope })
 }
 ```
