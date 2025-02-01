@@ -82,7 +82,7 @@ export function resolveList<const Resolvers extends ResolverList>(
     );
 
     return (hasPromises ? Promise.all(resolutions) : resolutions) as any;
-};
+}
 
 /**
  * Calls every resolver in a map with a provided resolution context
@@ -148,16 +148,13 @@ export function resolveMap<const Resolvers extends ResolverRecord>(
     );
 
     if (hasPromises) {
-        return (async () => {
-            const awaitedEntries = await Promise.all(
-                resolutionMapEntries.map(async ([key, resolution]) => [
-                    key,
-                    await resolution,
-                ]),
-            );
-            return Object.fromEntries(awaitedEntries);
-        })() as any;
+        return Promise.all(
+            resolutionMapEntries.map(async ([key, resolution]) => [
+                key,
+                await resolution,
+            ]),
+        ).then(Object.fromEntries) as any;
     }
 
     return Object.fromEntries(resolutionMapEntries);
-};
+}
