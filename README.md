@@ -395,7 +395,7 @@ resolutions == {
 ```ts
 function transient<T>(fn: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that takes a resolution context and returns a value of some type.
+- `fn`: A function that takes a resolution context and returns a value of some type.
 
 Creates a resolver that creates a new resolution on each call.
 
@@ -407,9 +407,9 @@ getEntity() !== getEntity()
 
 ### `singleton`
 ```ts
-function singleton<T>(resolver: ResolverFn<T>): Resolver<T>
+function singleton<T>(fn: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that takes a resolution context and returns a value of some type.
+- `fn`: A function that takes a resolution context and returns a value of some type.
 
 Creates a resolver that creates a resolution once and return it on each call.
 
@@ -421,9 +421,9 @@ getEntity() === getEntity()
 
 ### `scoped`
 ```ts
-function scoped<T>(resolver: ResolverFn<T>): Resolver<T>
+function scoped<T>(fn: ResolverFn<T>): Resolver<T>
 ```
-- `resolver`: A function that takes a resolution context and returns a value of some type.
+- `fn`: A function that takes a resolution context and returns a value of some type.
 
 Creates a resolver that takes its resolution from a scope or create a new one and save it if there is none. If no scope was passed in a resolution context, it will act as a singleton.
 
